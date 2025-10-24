@@ -1,37 +1,75 @@
+import { AlgorandClient } from '@algorandfoundation/algokit-utils'
+
 // Define interfaces for method arguments and return types
-interface DeployOptions {
-  // Add deployment-specific options if needed in future
+interface SkillSwapClientOptions {
+  appId: number
+  algorand: AlgorandClient
 }
 
 interface RegisterUserArgs {
   name: string
 }
 
-interface ListSkillArgs {
-  name: string
-  description: string
-  rate: number
+interface GetReputationArgs {
+  user: string
 }
 
-interface BookSessionArgs {
-  skillId: number
+interface GetUserBalanceArgs {
+  user: string
 }
 
+interface AppClientResponse<T> {
+  return: T
+}
+
+export class SkillSwapClient {
+  private appId: number
+  private algorand: AlgorandClient
+
+  constructor(options: SkillSwapClientOptions) {
+    this.appId = options.appId
+    this.algorand = options.algorand
+  }
+
+  // Simulate network delay for realistic behavior
+  private delay(ms: number) {
+    return new Promise((resolve) => setTimeout(resolve, ms))
+  }
+
+  async register_user(args: RegisterUserArgs): Promise<AppClientResponse<string>> {
+    await this.delay(500)
+    // Mock registration - in real implementation, this would call the smart contract
+    console.log(`Registering user: ${args.name}`)
+    return { return: `User ${args.name} registered successfully` }
+  }
+
+  async get_reputation(args: GetReputationArgs): Promise<AppClientResponse<number>> {
+    await this.delay(300)
+    // Mock reputation data - in real implementation, this would query the smart contract
+    // For now, return a random reputation score between 0-100
+    const reputation = Math.floor(Math.random() * 101)
+    console.log(`Fetched reputation for ${args.user}: ${reputation}`)
+    return { return: reputation }
+  }
+
+  async get_user_balance(args: GetUserBalanceArgs): Promise<AppClientResponse<number>> {
+    await this.delay(300)
+    // Mock balance data - in real implementation, this would query the smart contract
+    // For now, return a random balance between 0-1000 skill tokens
+    const balance = Math.floor(Math.random() * 1001)
+    console.log(`Fetched balance for ${args.user}: ${balance}`)
+    return { return: balance }
+  }
+}
+
+// Legacy factory class for backward compatibility
 interface SkillSwapFactoryOptions {
-  // Add any configuration parameters your factory might need
-}
-
-interface AppClientSend {
-  register_user(args: RegisterUserArgs): Promise<{ return: string }>
-  list_skill(args: ListSkillArgs): Promise<{ return: number }>
-  book_session(args: BookSessionArgs): Promise<{ return: number }>
-  complete_session(args: { sessionId: number }): Promise<void>
+  defaultSender?: string
+  algorand?: AlgorandClient
 }
 
 interface DeployResult {
-  appClient: {
-    send: AppClientSend
-  }
+  appClient: SkillSwapClient
 }
 
 export class SkillSwapFactory {
@@ -46,37 +84,16 @@ export class SkillSwapFactory {
     return new Promise((resolve) => setTimeout(resolve, ms))
   }
 
-  async deploy(_options?: DeployOptions): Promise<DeployResult> {
+  async deploy(): Promise<DeployResult> {
     // Simulate deployment delay
     await this.delay(500)
 
-    const appClient = {
-      send: {
-        register_user: async (args: RegisterUserArgs): Promise<{ return: string }> => {
-          await this.delay(300)
-          // Mock response could be expanded to simulate errors or validation
-          return { return: `User ${args.name} registered successfully` }
-        },
-
-        list_skill: async (args: ListSkillArgs): Promise<{ return: number }> => {
-          await this.delay(300)
-          // Returns mock skill id
-          return { return: Math.floor(Math.random() * 1000) + 1 }
-        },
-
-        book_session: async (args: BookSessionArgs): Promise<{ return: number }> => {
-          await this.delay(300)
-          // Returns mock session id
-          return { return: Math.floor(Math.random() * 10000) + 1 }
-        },
-
-        complete_session: async (args: { sessionId: number }): Promise<void> => {
-          await this.delay(300)
-          // No return value, simulate session completion
-          console.log(`Session ${args.sessionId} marked as complete.`)
-        },
-      },
-    }
+    // Create a mock client for backward compatibility
+    const mockAlgorand = this.options.algorand || {} as AlgorandClient
+    const appClient = new SkillSwapClient({
+      appId: Math.floor(Math.random() * 1000000) + 1,
+      algorand: mockAlgorand
+    })
 
     return { appClient }
   }
