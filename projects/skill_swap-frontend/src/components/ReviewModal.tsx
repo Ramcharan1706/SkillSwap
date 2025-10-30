@@ -10,7 +10,6 @@ interface ReviewModalProps {
 const ReviewModal: React.FC<ReviewModalProps> = ({ skillId, onClose, onSubmit }) => {
   const [rating, setRating] = useState(0)
   const [comment, setComment] = useState('')
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (rating > 0 && comment.trim()) {
