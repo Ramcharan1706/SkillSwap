@@ -2,7 +2,6 @@ import { AlgoClientConfig } from '@algorandfoundation/algokit-utils/types/networ
 import type { TokenHeader } from 'algosdk/dist/types/client/urlTokenBaseHTTPClient'
 
 export interface AlgoViteClientConfig extends AlgoClientConfig {
-  /** Base URL of the server e.g. http://localhost, https://testnet-api.algonode.cloud/, etc. */
   server: string
   /** The port to use e.g. 4001, 443, etc. */
   port: string | number
