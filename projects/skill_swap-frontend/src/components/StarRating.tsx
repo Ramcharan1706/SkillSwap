@@ -14,7 +14,6 @@ const StarRating: React.FC<StarRatingProps> = ({ rating, onChange, interactive =
       onChange(starIndex + 1)
     }
   }
-
   const handleMouseEnter = (starIndex: number) => {
     if (interactive) {
       setHoverRating(starIndex + 1)
