@@ -15,7 +15,6 @@ const Transact = ({ openModal, setModalState }: TransactInterface) => {
 
   const { enqueueSnackbar } = useSnackbar()
   const { transactionSigner, activeAddress } = useWallet()
-
   const algodConfig = getAlgodConfigFromViteEnvironment()
   const algorand = AlgorandClient.fromConfig({ algodConfig })
 
