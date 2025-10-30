@@ -18,7 +18,6 @@ interface BookingModalProps {
   activeAddress: string | undefined
   onBookingSuccess?: (skillId: number, slot: string) => void
 }
-
 const DEFAULT_RECEIVER =
   '2ZTFJNDXPWDETGJQQN33HAATRHXZMBWESKO2AUFZUHERH2H3TG4XTNPL4Y'
 
