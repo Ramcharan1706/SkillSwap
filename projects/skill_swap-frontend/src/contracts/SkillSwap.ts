@@ -1,6 +1,6 @@
 import { AlgorandClient } from '@algorandfoundation/algokit-utils'
 
-// Define interfaces for method arguments and return types
+
 interface SkillSwapClientOptions {
   appId: number
   algorand: AlgorandClient
