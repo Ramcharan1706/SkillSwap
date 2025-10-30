@@ -2,7 +2,6 @@
 import React, { createContext, useContext, useState, useMemo, ReactNode } from 'react'
 
 export type UserRole = 'teacher' | 'learner'
-
 interface AuthContextType {
   role: UserRole | null
   userName: string
