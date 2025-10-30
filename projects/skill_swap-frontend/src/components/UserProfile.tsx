@@ -17,7 +17,6 @@ interface UserProfileProps {
 const UserProfile: React.FC<UserProfileProps> = ({ address, registered, onRegister }) => {
   const { enqueueSnackbar } = useSnackbar()
   const { transactionSigner } = useWallet()
-
   const [name, setName] = useState('')
   const [reputation, setReputation] = useState(5)
   const [balance, setBalance] = useState(150)
