@@ -10,7 +10,6 @@ interface AppCallsProps {
   openModal: boolean
   setModalState: (value: boolean) => void
 }
-
 type ActionType = 'register' | 'list_skill' | 'book_session' | 'complete_session'
 
 const AppCalls: React.FC<AppCallsProps> = ({ openModal, setModalState }) => {
