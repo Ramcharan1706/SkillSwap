@@ -10,7 +10,6 @@ const Account = () => {
   const networkName = useMemo(() => {
     return algoConfig.network === '' ? 'localnet' : algoConfig.network.toLocaleLowerCase()
   }, [algoConfig.network])
-
   return (
     <div>
       <a className="text-xl" target="_blank" href={`https://lora.algokit.io/${networkName}/account/${activeAddress}/`}>
