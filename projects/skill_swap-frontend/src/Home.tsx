@@ -13,7 +13,6 @@ import { AlgorandClient } from '@algorandfoundation/algokit-utils'
 
 const Home: React.FC = () => {
   const { activeAddress, transactionSigner } = useWallet()
-
   const [openWalletModal, setOpenWalletModal] = useState(false)
   const [openBookingModal, setOpenBookingModal] = useState(false)
   const [openFeedbackModal, setOpenFeedbackModal] = useState(false)
