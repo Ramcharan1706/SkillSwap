@@ -21,8 +21,8 @@ interface SkillRegistrationFormProps {
 }
 
 const SKILL_CATEGORIES = [
-  'Programming', 'Music', 'Languages', 'Art', 'Sports', 'Cooking',
-  'Photography', 'Writing', 'Business', 'Science', 'Design', 'Other', 'Coding'
+  'Programming', 'Music', 'Coding', 'Languages', 'Art', 'Sports', 'Cooking',
+  'Photography', 'Writing', 'Business', 'Science', 'Design', 'Other'
 ]
 
 const SKILL_LEVELS = ['Beginner', 'Intermediate', 'Advanced'] as const
