@@ -3,7 +3,6 @@ import { useWallet } from '@txnlab/use-wallet-react'
 import { useSnackbar } from 'notistack'
 import { AlgorandClient, algo } from '@algorandfoundation/algokit-utils'
 
-// Reusable Components
 import StarRating from './StarRating'
 import Badge from './Badge'
 import ReviewsModal from './ReviewsModal'
