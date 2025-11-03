@@ -42,8 +42,7 @@ export const createNFT = async (
     }
 
     // Convert metadata to JSON and hash it
-    const metadataJSON = JSON.stringify(nftMetadata)
-    const metadataHash = new Uint8Array(algosdk.encodeObj(metadataJSON).slice(0, 32)) // 32-byte hash
+    const metadataHash = new Uint8Array(algosdk.encodeObj(nftMetadata).slice(0, 32)) // 32-byte hash
 
     // Create NFT ASA
     const result = await client.send.assetCreate({

@@ -96,11 +96,11 @@ const SessionCompletionModal: React.FC<SessionCompletionModalProps> = ({
       onClose={() => setModalState(false)}
       aria-modal="true"
       role="dialog"
-      style={{ background: 'linear-gradient(to bottom right, #581c87, #3730a3)' }}
+      style={{ background: '#1e40af' }}
     >
       <form
         method="dialog"
-        className="modal-box bg-gradient-to-br from-white via-purple-50 to-pink-50 border-2 border-purple-200 shadow-3xl max-w-lg p-8 rounded-3xl"
+        className="modal-box bg-blue-800/10 border-2 border-blue-800/30 shadow-3xl max-w-lg p-8 rounded-3xl"
         onSubmit={(e) => {
           e.preventDefault()
           if (!loading) handleCompleteSession()
@@ -109,31 +109,31 @@ const SessionCompletionModal: React.FC<SessionCompletionModalProps> = ({
       >
         <h3
           id="session_completion_title"
-          className="text-3xl font-bold mb-6 flex items-center justify-center text-transparent bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text"
+          className="text-3xl font-bold mb-6 flex items-center justify-center text-white"
         >
           🎓 Complete Session & Award NFT
         </h3>
 
         <div className="mb-6">
-          <label className="text-lg font-bold text-gray-700 mb-3 block">
+          <label className="text-lg font-bold text-white mb-3 block">
             📋 Session ID
           </label>
-          <div className="bg-gradient-to-r from-purple-100 to-pink-100 px-4 py-3 rounded-2xl font-bold text-purple-700 border-2 border-purple-200 text-lg">
+          <div className="bg-blue-800/10 px-4 py-3 rounded-2xl font-bold text-white border-2 border-blue-800/30 text-lg">
             {sessionId}
           </div>
         </div>
 
         <div className="mb-6">
-          <label className="text-lg font-bold text-gray-700 mb-3 block">
+          <label className="text-lg font-bold text-white mb-3 block">
             👨‍🎓 Student Address
           </label>
-          <div className="bg-gray-100 px-4 py-3 rounded-2xl font-mono text-gray-800 border-2 border-gray-200 text-sm break-all">
+          <div className="bg-blue-800/10 px-4 py-3 rounded-2xl font-mono text-white border-2 border-blue-800/30 text-sm break-all">
             {studentAddress}
           </div>
         </div>
 
         <div className="mb-6">
-          <p className="text-lg text-gray-700">
+          <p className="text-lg text-white">
             🎨 A new NFT will be created and awarded to the student upon session completion.
           </p>
         </div>
@@ -142,7 +142,7 @@ const SessionCompletionModal: React.FC<SessionCompletionModalProps> = ({
           <button
             type="submit"
             disabled={loading}
-            className="flex-1 bg-gradient-to-r from-purple-500 via-pink-500 to-red-500 text-white px-6 py-3 rounded-2xl font-bold text-lg hover:scale-105 transition-all disabled:opacity-50"
+            className="flex-1 bg-blue-800 text-white px-6 py-3 rounded-2xl font-bold text-lg hover:bg-blue-900 transition-all disabled:opacity-50"
             aria-label="Complete session and award NFT"
           >
             {loading ? '🔄 Completing...' : '✅ Complete & Award NFT'}
@@ -152,7 +152,7 @@ const SessionCompletionModal: React.FC<SessionCompletionModalProps> = ({
         <button
           type="button"
           onClick={() => setModalState(false)}
-          className="w-full text-gray-500 hover:text-gray-700 underline text-lg font-bold"
+          className="w-full text-white/70 hover:text-white underline text-lg font-bold"
           disabled={loading}
           aria-label="Cancel session completion"
         >

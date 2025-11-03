@@ -19,7 +19,7 @@ const TimeSlotSelector: React.FC<TimeSlotSelectorProps> = ({
   disabled = false,
 }) => {
   return (
-    <div className="grid grid-cols-2 gap-4 mb-6" style={{ background: 'linear-gradient(to bottom right, #581c87, #3730a3)' }}>
+    <div className="grid grid-cols-2 gap-4 mb-6" style={{ background: '#1e40af' }}>
       {timeSlots.map((slot) => (
         <button
           key={slot.time}
@@ -28,8 +28,8 @@ const TimeSlotSelector: React.FC<TimeSlotSelectorProps> = ({
           disabled={disabled}
           className={`px-6 py-3 rounded-2xl border-2 font-bold text-lg transition-all duration-500 ${
             selectedTimeSlot?.time === slot.time
-              ? 'bg-gradient-to-r from-green-500 to-blue-500 text-white border-green-500 shadow-xl'
-              : 'bg-white hover:bg-green-50 border-green-200 text-gray-700'
+              ? 'bg-blue-800 text-white border-blue-800 shadow-xl'
+              : 'bg-blue-800/10 hover:bg-blue-800/20 border-blue-800/30 text-white'
           } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
           aria-label={`Select time slot ${slot.time}`}
         >

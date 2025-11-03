@@ -71,7 +71,7 @@ const ReviewModal: React.FC<ReviewModalProps> = ({ skillId, skill, mode = 'submi
         />
       </div>
       <div className="btn-group bg-transparent">
-        <button type="submit" disabled={loading} className="btn btn-primary btn-small glowing disabled:opacity-50">
+        <button type="submit" disabled={loading} className="btn btn-primary btn-small disabled:opacity-50">
           {loading ? 'Submitting...' : 'Submit'}
         </button>
         <button type="button" onClick={onClose} className="btn btn-warning btn-small">
@@ -105,7 +105,7 @@ const ReviewModal: React.FC<ReviewModalProps> = ({ skillId, skill, mode = 'submi
         </div>
       )}
       <div className="btn-group mt-6">
-        <button onClick={() => setViewMode('submit')} className="btn btn-primary btn-small glowing">
+        <button onClick={() => setViewMode('submit')} className="btn btn-primary btn-small">
           Leave Review
         </button>
         <button type="button" onClick={onClose} className="btn btn-warning btn-small">
@@ -116,8 +116,8 @@ const ReviewModal: React.FC<ReviewModalProps> = ({ skillId, skill, mode = 'submi
   )
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 center-both z-50" style={{ background: 'linear-gradient(to bottom right, #581c87, #3730a3, #000000)' }}>
-      <div className="card max-w-md w-full bg-gradient-to-br from-purple-900 via-indigo-900 to-black text-white border border-white/20">
+    <div className="fixed inset-0 bg-black bg-opacity-50 center-both z-50" style={{ background: '#1e40af' }}>
+      <div className="card max-w-md w-full bg-blue-800/10 text-white border border-blue-800/30">
         <h2 className="text-xl font-bold mb-6 text-center">
           {viewMode === 'submit' ? 'Submit Review' : `Reviews for ${skill?.name || 'Skill'}`}
         </h2>

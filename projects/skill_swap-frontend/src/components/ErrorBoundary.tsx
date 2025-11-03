@@ -40,7 +40,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
       const isEnvError = error?.message.includes('Attempt to get default algod configuration')
 
       return (
-        <div className="hero min-h-screen bg-teal-400 px-4" style={{ background: 'linear-gradient(to bottom right, #581c87, #3730a3)' }}>
+        <div className="hero min-h-screen bg-teal-400 px-4" style={{ background: '#1e40af' }}>
           <div className="hero-content text-center rounded-lg p-8 max-w-lg bg-white mx-auto shadow-lg">
             <h1 className="text-4xl font-extrabold mb-4 text-red-600">Oops! Something went wrong.</h1>
             <p

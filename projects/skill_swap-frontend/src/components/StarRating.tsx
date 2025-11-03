@@ -14,7 +14,7 @@ const StarRating: React.FC<StarRatingProps> = ({ rating, onChange, interactive =
   }
 
   return (
-    <div className="flex gap-1" style={{ background: 'linear-gradient(to bottom right, #581c87, #3730a3)' }}>
+    <div className="flex gap-1" style={{ background: '#1e40af' }}>
       {Array(5)
         .fill(0)
         .map((_, i) => (

@@ -229,7 +229,7 @@ const SkillList: React.FC<SkillListProps> = ({ onBookSkill, onOpenReviewModal, a
   }, [skills, filters])
 
   return (
-    <div className="w-full max-w-6xl mx-auto px-6 flex flex-col items-center justify-center min-h-[60vh] " style={{ background: 'linear-gradient(to bottom right, #581c87, #3730a3, #000000)' }}>
+    <div className="w-full mx-auto px-6 flex flex-col items-center justify-center min-h-[60vh] " style={{ background: '#1e40af' }}>
       {/* Filters */}
       <div className="mb-8 w-full flex flex-wrap gap-4 justify-center">
         <select value={filters.category} onChange={e => setFilters(prev => ({ ...prev, category: e.target.value }))} className="border border-white/30 bg-white/10 text-white px-4 py-2 rounded-lg shadow-sm hover:shadow-md transition-shadow backdrop-blur-sm">
@@ -250,14 +250,14 @@ const SkillList: React.FC<SkillListProps> = ({ onBookSkill, onOpenReviewModal, a
           <p className="center-content text-lg">No skills found.</p>
         ) : filteredSkills.map(skill => (
           <div key={skill.id} className="card card-centered transform hover:scale-105 transition-all duration-300 w-full">
-            <h3 className="text-2xl font-bold mb-3 text-center gradient-text">{skill.name}</h3>
+            <h3 className="text-2xl font-bold mb-3 text-center text-white">{skill.name}</h3>
             <p className="text-gray-700 text-lg mb-4 text-center font-medium">{skill.description}</p>
             <div className="center-content mb-3">
               <Badge text={skill.category} />
             </div>
             <div className="grid grid-cols-2 gap-6 mb-4 text-lg">
-              <p className="text-center font-semibold"><strong>Level:</strong> <span className="text-purple-600">{skill.level}</span></p>
-              <p className="text-center font-semibold"><strong>Rate:</strong> <span className="text-green-600">${skill.rate}</span></p>
+              <p className="text-center font-semibold"><strong>Level:</strong> <span className="text-white">{skill.level}</span></p>
+              <p className="text-center font-semibold"><strong>Rate:</strong> <span className="text-white">${skill.rate}</span></p>
             </div>
             <div className="mb-4 text-center">
               <p className="text-lg font-semibold"><strong>Receiver Address:</strong></p>
@@ -303,7 +303,7 @@ const SkillList: React.FC<SkillListProps> = ({ onBookSkill, onOpenReviewModal, a
                 <button
                   key={idx}
                   onClick={() => onBookSkill(skill.id, skill.rate, slot)}
-                  className="btn btn-primary btn-large glowing"
+                  className="btn btn-primary btn-large"
                 >
                   Book {slot.slot}
                 </button>
@@ -315,7 +315,7 @@ const SkillList: React.FC<SkillListProps> = ({ onBookSkill, onOpenReviewModal, a
             {/* Reviews Section */}
             {skill.feedbacks.length > 0 && (
               <div className="mt-8 border-t-2 border-gray-200 pt-6">
-                <h4 className="text-2xl font-bold mb-4 text-center gradient-text">Recent Reviews</h4>
+                <h4 className="text-2xl font-bold mb-4 text-center text-white">Recent Reviews</h4>
                 <div className="space-y-4 max-h-48 overflow-y-auto">
                   {skill.feedbacks.slice(-2).map(feedback => (
                     <div key={feedback.id} className="bg-gradient-to-r from-gray-50 to-white p-4 rounded-2xl border-2 border-gray-100 shadow-md">
@@ -345,8 +345,8 @@ const SkillList: React.FC<SkillListProps> = ({ onBookSkill, onOpenReviewModal, a
       </div>
 
       {/* Register New Skill */}
-      <div className="card card-centered w-full bg-gradient-to-br from-purple-900 via-indigo-900 to-black text-white border border-white/20 glowing">
-        <h2 className="text-4xl font-bold mb-8 text-center gradient-text floating">Register New Skill</h2>
+      <div className="card card-centered w-full bg-blue-800 text-white border border-blue-800/30">
+        <h2 className="text-4xl font-bold mb-8 text-center text-white">Register New Skill</h2>
         <div className="flex flex-col gap-6">
           <input type="text" placeholder="Skill Name" value={form.name} onChange={e => setForm(prev => ({ ...prev, name: e.target.value }))} className="border-2 border-white/30 bg-white/10 text-white px-6 py-4 rounded-2xl shadow-lg hover:shadow-xl transition-all backdrop-blur-sm placeholder-white/50 text-lg font-medium" />
           <textarea placeholder="Description" value={form.description} onChange={e => setForm(prev => ({ ...prev, description: e.target.value }))} className="border-2 border-white/30 bg-white/10 text-white px-6 py-4 rounded-2xl shadow-lg hover:shadow-xl transition-all backdrop-blur-sm placeholder-white/50 text-lg font-medium" rows={4} />
@@ -385,12 +385,12 @@ const SkillList: React.FC<SkillListProps> = ({ onBookSkill, onOpenReviewModal, a
               </div>
             ))}
             <div className="center-content mt-6">
-              <button onClick={handleAddSlot} className="btn btn-primary btn-large glowing">Add Slot</button>
+              <button onClick={handleAddSlot} className="btn btn-primary btn-large">Add Slot</button>
             </div>
           </div>
 
           <div className="center-content mt-8">
-            <button onClick={handleRegisterSkill} disabled={registerLoading} className="btn btn-large glowing text-2xl px-12 py-6">
+            <button onClick={handleRegisterSkill} disabled={registerLoading} className="btn btn-large text-2xl px-12 py-6">
               {registerLoading ? 'Registering...' : 'Register Skill'}
             </button>
           </div>

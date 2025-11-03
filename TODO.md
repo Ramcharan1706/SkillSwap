@@ -1,9 +1,10 @@
-in skill registration add reciever wallet address .
-booking modal paste the wallet address of reciever .
-skill list update the wallet address and add copy button after wallet address .
+# TODO: Improve Padding and Width in Home.tsx
 
-- [x] Update smart contract (contract.py): Add receiver field to Skill struct
-- [x] Update frontend contract (SkillSwap.ts): Modify list_skill method to include receiver
-- [x] Update SkillRegistrationForm.tsx: Add receiver wallet address input field
-- [x] Update BookingModal.tsx: Use receiver address from skill for payment
-- [x] Update SkillList.tsx: Display receiver address with copy button
+- [x] Increase header padding: py-8 to py-10, px-10 to px-12
+- [x] Increase hero padding: py-16 to py-20, px-6 to px-8
+- [x] Increase main app padding: py-10 to py-12, px-6 to px-8
+- [x] Increase footer padding: py-8 to py-10, px-6 to px-8
+- [x] Adjust UserProfile width: max-w-md to max-w-lg
+- [x] Test the layout for better spacing and accessibility
+- [x] Increase gaps between components
+- [x] Add NFT sending functionality to UserProfile

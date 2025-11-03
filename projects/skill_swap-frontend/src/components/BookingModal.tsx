@@ -216,11 +216,11 @@ const BookingModal: React.FC<BookingModalProps> = ({
       onClose={() => setModalState(false)}
       aria-modal="true"
       role="dialog"
-      style={{ background: 'linear-gradient(to bottom right, #581c87, #3730a3, #000000)' }}
+      style={{ background: '#1e40af' }}
     >
       <form
         method="dialog"
-        className="modal-box bg-gradient-to-br from-white via-purple-50 to-pink-50 border-2 border-purple-200 shadow-3xl max-w-2xl p-10 rounded-3xl"
+        className="modal-box bg-blue-800/10 border-2 border-blue-800/30 shadow-3xl max-w-2xl p-10 rounded-3xl"
         onSubmit={(e) => {
           e.preventDefault()
           if (!bookingState.loading) handleBookSession()
@@ -229,7 +229,7 @@ const BookingModal: React.FC<BookingModalProps> = ({
       >
         <h3
           id="booking_modal_title"
-          className="text-4xl font-bold mb-8 flex items-center justify-center text-transparent bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text"
+          className="text-4xl font-bold mb-8 flex items-center justify-center text-white"
         >
           🚀 Book a Session
         </h3>
@@ -237,7 +237,7 @@ const BookingModal: React.FC<BookingModalProps> = ({
         {/* Skill Info */}
         <div className="mb-8 text-center">
           <label className="text-xl font-bold text-gray-700 mb-3 block">🎯 Skill ID</label>
-          <div className="bg-gradient-to-r from-purple-100 to-pink-100 px-6 py-4 rounded-2xl font-bold text-purple-700 border-2 border-purple-200 text-xl shadow-lg">
+          <div className="bg-blue-800/10 px-6 py-4 rounded-2xl font-bold text-white border-2 border-blue-800/30 text-xl shadow-lg">
             {skillId}
           </div>
         </div>
@@ -266,13 +266,13 @@ const BookingModal: React.FC<BookingModalProps> = ({
               setReceiverAddress(e.target.value.trim())
               dispatch({ type: 'SET_ERROR', payload: null })
             }}
-            className={`w-full px-4 py-3 rounded-2xl border-2 text-lg font-mono transition-all duration-500
+            className={`w-full px-4 py-3 rounded-2xl border-2 text-lg font-mono transition-all duration-500 text-white bg-blue-800/10
               ${
                 isReceiverValid || receiverAddress === ''
-                  ? 'border-purple-200 focus:ring-4 focus:ring-purple-300'
+                  ? 'border-blue-800/30 focus:ring-4 focus:ring-blue-500'
                   : 'border-red-400 focus:ring-4 focus:ring-red-300'
               }
-              placeholder:text-gray-400`}
+              placeholder:text-white/50`}
             disabled={bookingState.loading || bookingState.bookingConfirmed}
             placeholder="Enter Algorand address"
             aria-describedby="receiver-error"
@@ -283,7 +283,7 @@ const BookingModal: React.FC<BookingModalProps> = ({
         {/* Skill Rate (Fixed) */}
         <div className="mb-8">
           <label className="text-xl font-bold text-gray-700 mb-3 block">💰 Skill Rate (ALGO/hr)</label>
-          <div className="w-full px-6 py-4 rounded-2xl border-2 border-purple-200 bg-gradient-to-r from-purple-50 to-pink-50 text-xl font-bold text-purple-700">
+          <div className="w-full px-6 py-4 rounded-2xl border-2 border-blue-800/30 bg-blue-800/10 text-xl font-bold text-white">
             {skillRate.toFixed(3)}
           </div>
         </div>
@@ -300,12 +300,12 @@ const BookingModal: React.FC<BookingModalProps> = ({
         )}
 
         {/* Total and Book Button */}
-        <div className="flex justify-between items-center mt-10 p-6 bg-gradient-to-br from-purple-50 via-pink-50 to-red-50 rounded-3xl border-2 border-purple-200 shadow-xl">
-          <strong className="text-2xl text-gray-800">💎 Total: {totalPayment.toFixed(3)} ALGO</strong>
+        <div className="flex justify-between items-center mt-10 p-6 bg-blue-800/10 rounded-3xl border-2 border-blue-800/30 shadow-xl">
+          <strong className="text-2xl text-white">💎 Total: {totalPayment.toFixed(3)} ALGO</strong>
           <button
             type="submit"
             disabled={bookingState.loading || bookingState.bookingConfirmed}
-            className="bg-gradient-to-r from-purple-500 via-pink-500 to-red-500 text-white px-8 py-4 rounded-2xl font-bold text-xl hover:scale-105 transition-all disabled:opacity-50"
+            className="bg-blue-800 text-white px-8 py-4 rounded-2xl font-bold text-xl hover:bg-blue-900 transition-all disabled:opacity-50"
             aria-label={
               bookingState.loading
                 ? 'Processing payment'
@@ -324,9 +324,9 @@ const BookingModal: React.FC<BookingModalProps> = ({
 
         {/* ---------------- SHOW SLOTS ONLY AFTER BOOKING CONFIRMATION ---------------- */}
         {bookingState.bookingConfirmed && (
-          <div className="mt-8 p-6 bg-gradient-to-r from-green-50 to-blue-50 rounded-3xl border-2 border-green-200 shadow-lg">
-            <h4 className="text-2xl font-bold text-green-700 mb-4">🎉 Booking Confirmed!</h4>
-            <p className="text-lg text-gray-700 mb-4">
+          <div className="mt-8 p-6 bg-blue-800/10 rounded-3xl border-2 border-blue-800/30 shadow-lg">
+            <h4 className="text-2xl font-bold text-white mb-4">🎉 Booking Confirmed!</h4>
+            <p className="text-lg text-white mb-4">
               You can now select your session time or join directly:
             </p>
 
@@ -338,17 +338,17 @@ const BookingModal: React.FC<BookingModalProps> = ({
             />
 
             {selectedTimeSlot && (
-              <div className="p-4 bg-white rounded-2xl border-2 border-green-100">
-                <p className="text-lg text-gray-700 mb-2">
+              <div className="p-4 bg-blue-800/10 rounded-2xl border-2 border-blue-800/30">
+                <p className="text-lg text-white mb-2">
                   ✅ Selected Slot: <strong>{selectedTimeSlot.time}</strong>
                 </p>
-                <p className="text-sm text-gray-600 mb-4">
+                <p className="text-sm text-white/70 mb-4">
                   Your meeting link is ready. You can join the session or share the link below.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4">
                   <button
                     onClick={() => window.open(selectedTimeSlot.meetLink, '_blank')}
-                    className="bg-gradient-to-r from-green-500 to-blue-500 text-white px-6 py-3 rounded-2xl font-bold text-lg hover:scale-105 transition-all flex-1"
+                    className="bg-blue-800 text-white px-6 py-3 rounded-2xl font-bold text-lg hover:bg-blue-900 transition-all flex-1"
                     aria-label={`Join meeting at ${selectedTimeSlot.time}`}
                   >
                     🔗 Join Meeting
@@ -362,7 +362,7 @@ const BookingModal: React.FC<BookingModalProps> = ({
                         enqueueSnackbar('Failed to copy link', { variant: 'error' })
                       }
                     }}
-                    className="bg-gradient-to-r from-blue-500 to-purple-500 text-white px-6 py-3 rounded-2xl font-bold text-lg hover:scale-105 transition-all flex-1"
+                    className="bg-blue-800 text-white px-6 py-3 rounded-2xl font-bold text-lg hover:bg-blue-900 transition-all flex-1"
                     aria-label="Copy meeting link to clipboard"
                   >
                     📋 Copy Link
@@ -377,7 +377,7 @@ const BookingModal: React.FC<BookingModalProps> = ({
         <button
           type="button"
           onClick={() => setModalState(false)}
-          className="mt-8 w-full text-gray-500 hover:text-gray-700 underline text-lg font-bold"
+          className="mt-8 w-full text-white/70 hover:text-white underline text-lg font-bold"
           disabled={bookingState.loading}
           aria-label={bookingState.bookingConfirmed ? 'Close modal' : 'Cancel booking'}
         >

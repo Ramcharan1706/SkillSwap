@@ -85,8 +85,8 @@ const SkillRegistrationForm: React.FC<SkillRegistrationFormProps> = ({ onRegiste
 
   return (
     <div
-      className="card card-centered w-full text-white border border-white/20"
-      style={{ background: 'linear-gradient(to bottom right, #581c87, #3730a3)' }}
+      className="card card-centered w-full text-white border border-blue-800/30"
+      style={{ background: '#1e40af', padding: '3rem' }}
     >
       <h2 className="text-2xl font-bold mb-8 text-center">Register New Skill</h2>
 
@@ -209,7 +209,7 @@ const SkillRegistrationForm: React.FC<SkillRegistrationFormProps> = ({ onRegiste
           <button
             type="submit"
             disabled={loading}
-            className="btn btn-large glowing disabled:opacity-50 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white px-8 py-3 rounded-full font-bold shadow-lg transform hover:scale-105 transition-all duration-300"
+            className="btn btn-large disabled:opacity-50 bg-blue-800 hover:bg-blue-900 text-white px-8 py-3 rounded-full font-bold shadow-lg transform hover:scale-105 transition-all duration-300"
           >
             {loading ? 'Registering...' : 'Register Skill'}
           </button>

@@ -72,7 +72,7 @@ const Transact = ({ openModal, setModalState }: TransactInterface) => {
     <dialog
       id="transact_modal"
       className={`modal ${openModal ? 'modal-open' : ''} bg-black/50 backdrop-blur-sm`}
-      style={{ display: openModal ? 'block' : 'none', background: 'linear-gradient(to bottom right, #581c87, #3730a3)' }}
+      style={{ display: openModal ? 'block' : 'none', background: '#1e40af' }}
       onClick={(e) => {
         // close modal if click outside modal-box
         if ((e.target as Element).id === 'transact_modal') {
@@ -85,13 +85,13 @@ const Transact = ({ openModal, setModalState }: TransactInterface) => {
         className="modal-box max-w-md bg-transparent backdrop-blur-sm border border-white/20 shadow-lg"
         onSubmit={(e) => e.preventDefault()}
       >
-        <h3 className="font-bold text-lg mb-4 text-gray-800">Send 1 Algo Payment</h3>
+        <h3 className="font-bold text-lg mb-4 text-white">Send 1 Algo Payment</h3>
 
         <input
           type="text"
           data-test-id="receiver-address"
           placeholder="Enter receiver's Algorand address"
-          className="input input-bordered w-full mb-4"
+          className="input input-bordered w-full mb-4 bg-blue-800/10 border-blue-800/30 text-white placeholder:text-white/50"
           value={receiverAddress}
           onChange={(e) => setReceiverAddress(e.target.value.trim())}
           disabled={loading}
@@ -100,7 +100,7 @@ const Transact = ({ openModal, setModalState }: TransactInterface) => {
         <div className="modal-action flex justify-end gap-4">
           <button
             type="button"
-            className="btn btn-outline text-gray-700 hover:bg-gray-100 px-6 py-2 rounded-md"
+            className="btn btn-outline text-white hover:bg-blue-800/20 border-blue-800/30 px-6 py-2 rounded-md"
             onClick={handleClose}
             disabled={loading}
           >
@@ -112,7 +112,7 @@ const Transact = ({ openModal, setModalState }: TransactInterface) => {
             data-test-id="send-algo"
             className={`btn px-6 py-2 rounded-md font-semibold text-white ${
               isValidAddress(receiverAddress) && !loading
-                ? 'bg-gradient-to-r from-purple-500 to-pink-500 hover:shadow-lg hover:scale-105 transition-transform'
+                ? 'bg-blue-800 hover:bg-blue-900 hover:shadow-lg transition-all'
                 : 'btn-disabled cursor-not-allowed opacity-50'
             }`}
             onClick={handleSubmitAlgo}
