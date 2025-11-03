@@ -5,7 +5,7 @@ import { AlgorandClient, algo } from '@algorandfoundation/algokit-utils'
 
 import StarRating from './StarRating'
 import Badge from './Badge'
-import ReviewsModal from './ReviewsModal'
+import ReviewModal from './ReviewModal'
 
 interface Feedback {
   id: number
@@ -20,6 +20,7 @@ interface Skill {
   name: string
   description: string
   teacher: string
+  receiver: string
   rate: number
   category: string
   level: 'Beginner' | 'Intermediate' | 'Advanced'
@@ -56,11 +57,12 @@ const SkillList: React.FC<SkillListProps> = ({ onBookSkill, onOpenReviewModal, a
   const [skills, setSkills] = useState<Skill[]>([])
   const [loading, setLoading] = useState(false)
   const [registerLoading, setRegisterLoading] = useState(false)
-  const [reviewsModal, setReviewsModal] = useState<{ skillId: number; isOpen: boolean; skill?: Skill }>({ skillId: 0, isOpen: false })
+  const [reviewModal, setReviewModal] = useState<{ skillId: number; isOpen: boolean; skill?: Skill; mode: 'submit' | 'view' }>({ skillId: 0, isOpen: false, mode: 'submit' })
 
   const [form, setForm] = useState({
     name: '',
     description: '',
+    receiver: '',
     rate: '',
     category: '',
     level: 'Beginner' as const,
@@ -68,7 +70,7 @@ const SkillList: React.FC<SkillListProps> = ({ onBookSkill, onOpenReviewModal, a
   })
 
   const [filters, setFilters] = useState({ category: '', level: '', minRate: '', maxRate: '' })
-  const { transactionSigner } = useWallet()
+  const { transactionSigner, activeAccount } = useWallet()
   const { enqueueSnackbar } = useSnackbar()
 
   // Fetch skills (mock)
@@ -81,6 +83,7 @@ const SkillList: React.FC<SkillListProps> = ({ onBookSkill, onOpenReviewModal, a
           name: 'React Development Workshop',
           description: 'Learn React with hooks and modern practices.',
           teacher: 'ALICE1234567890123456789012345678901234567890',
+          receiver: 'ALICE1234567890123456789012345678901234567890',
           rate: 25,
           category: 'Programming',
           level: 'Intermediate',
@@ -121,8 +124,8 @@ const SkillList: React.FC<SkillListProps> = ({ onBookSkill, onOpenReviewModal, a
       enqueueSnackbar('Add at least one time slot.', { variant: 'warning' })
       return false
     }
-    if (!userAddress) {
-      enqueueSnackbar('Connect your wallet.', { variant: 'warning' })
+    if (!userAddress || !transactionSigner) {
+      enqueueSnackbar('Please connect your wallet and ensure it is active.', { variant: 'warning' })
       return false
     }
     for (const a of form.availability) {
@@ -162,6 +165,7 @@ const SkillList: React.FC<SkillListProps> = ({ onBookSkill, onOpenReviewModal, a
       name: form.name,
       description: form.description,
       teacher: userAddress,
+      receiver: form.receiver,
       rate: Number(form.rate),
       category: form.category,
       level: form.level,
@@ -179,7 +183,7 @@ const SkillList: React.FC<SkillListProps> = ({ onBookSkill, onOpenReviewModal, a
       await sendPayment()
       const newSkill = await registerSkillOnChain()
       setSkills(prev => [...prev, newSkill])
-      setForm({ name: '', description: '', rate: '', category: '', level: 'Beginner', availability: [] })
+      setForm({ name: '', description: '', receiver: '', rate: '', category: '', level: 'Beginner', availability: [] })
       enqueueSnackbar('Skill registered successfully!', { variant: 'success' })
     } finally {
       setRegisterLoading(false)
@@ -204,122 +208,229 @@ const SkillList: React.FC<SkillListProps> = ({ onBookSkill, onOpenReviewModal, a
     }))
   }
 
-  // Filter skills
+  // Filter and sort skills
   const filteredSkills = useMemo(() => {
-    return skills.filter(skill =>
+    let filtered = skills.filter(skill =>
       (!filters.category || skill.category === filters.category) &&
       (!filters.level || skill.level === filters.level) &&
       (!filters.minRate || skill.rate >= Number(filters.minRate)) &&
       (!filters.maxRate || skill.rate <= Number(filters.maxRate))
     )
+
+    // Sort by rating (highest first), then by sessions completed
+    filtered.sort((a, b) => {
+      if (b.rating !== a.rating) {
+        return b.rating - a.rating
+      }
+      return b.sessionsCompleted - a.sessionsCompleted
+    })
+
+    return filtered
   }, [skills, filters])
 
   return (
-    <div className="w-full max-w-6xl mx-auto px-6 flex flex-col items-center justify-center min-h-[60vh]">
+    <div className="w-full max-w-6xl mx-auto px-6 flex flex-col items-center justify-center min-h-[60vh] " style={{ background: 'linear-gradient(to bottom right, #581c87, #3730a3, #000000)' }}>
       {/* Filters */}
       <div className="mb-8 w-full flex flex-wrap gap-4 justify-center">
-        <select value={filters.category} onChange={e => setFilters(prev => ({ ...prev, category: e.target.value }))} className="border px-3 py-1 rounded">
-          <option value="">All Categories</option>
-          {SKILL_CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+        <select value={filters.category} onChange={e => setFilters(prev => ({ ...prev, category: e.target.value }))} className="border border-white/30 bg-white/10 text-white px-4 py-2 rounded-lg shadow-sm hover:shadow-md transition-shadow backdrop-blur-sm">
+          <option value="" className="bg-gray-800">All Categories</option>
+          {SKILL_CATEGORIES.map(cat => <option key={cat} value={cat} className="bg-gray-800">{cat}</option>)}
         </select>
-        <select value={filters.level} onChange={e => setFilters(prev => ({ ...prev, level: e.target.value }))} className="border px-3 py-1 rounded">
-          <option value="">All Levels</option>
-          {SKILL_LEVELS.map(level => <option key={level} value={level}>{level}</option>)}
+        <select value={filters.level} onChange={e => setFilters(prev => ({ ...prev, level: e.target.value }))} className="border border-white/30 bg-white/10 text-white px-4 py-2 rounded-lg shadow-sm hover:shadow-md transition-shadow backdrop-blur-sm">
+          <option value="" className="bg-gray-800">All Levels</option>
+          {SKILL_LEVELS.map(level => <option key={level} value={level} className="bg-gray-800">{level}</option>)}
         </select>
       </div>
 
       {/* Skill Cards */}
       <div className="w-full flex flex-col gap-6 mb-10">
         {loading ? (
-          <p>Loading skills...</p>
+          <p className="center-content text-lg">Loading skills...</p>
         ) : filteredSkills.length === 0 ? (
-          <p>No skills found.</p>
+          <p className="center-content text-lg">No skills found.</p>
         ) : filteredSkills.map(skill => (
-          <div key={skill.id} className="p-5 bg-white rounded-xl shadow-md flex flex-col justify-between">
-            <h3 className="text-xl font-bold mb-1">{skill.name}</h3>
-            <p className="text-gray-700 text-sm mb-2">{skill.description}</p>
-            <Badge text={skill.category} />
-            <p className="text-sm">Level: {skill.level}</p>
-            <p className="text-sm">Rate: ${skill.rate}</p>
-            <p className="text-sm">Rating: <StarRating rating={skill.rating} /> ({skill.feedbacks.length})</p>
+          <div key={skill.id} className="card card-centered transform hover:scale-105 transition-all duration-300 w-full">
+            <h3 className="text-2xl font-bold mb-3 text-center gradient-text">{skill.name}</h3>
+            <p className="text-gray-700 text-lg mb-4 text-center font-medium">{skill.description}</p>
+            <div className="center-content mb-3">
+              <Badge text={skill.category} />
+            </div>
+            <div className="grid grid-cols-2 gap-6 mb-4 text-lg">
+              <p className="text-center font-semibold"><strong>Level:</strong> <span className="text-purple-600">{skill.level}</span></p>
+              <p className="text-center font-semibold"><strong>Rate:</strong> <span className="text-green-600">${skill.rate}</span></p>
+            </div>
+            <div className="mb-4 text-center">
+              <p className="text-lg font-semibold"><strong>Receiver Address:</strong></p>
+              <div className="flex items-center justify-center gap-2">
+                <span className="text-gray-600 font-mono text-sm bg-gray-100 px-2 py-1 rounded">{skill.receiver}</span>
+                <button
+                  onClick={() => navigator.clipboard.writeText(skill.receiver)}
+                  className="text-blue-500 hover:text-blue-700 font-bold"
+                  title="Copy address"
+                >
+                  📋
+                </button>
+              </div>
+            </div>
+            <div className="center-content mb-4">
+              <p className="text-lg font-medium">Rating: <StarRating rating={skill.rating} /> ({skill.feedbacks.length})</p>
+            </div>
 
-            <div className="mt-2 text-sm">
-              <p className="font-semibold">Availability:</p>
-              <ul className="list-disc pl-5">
+            <div className="mt-4 text-lg">
+              <p className="font-bold text-center mb-3 text-xl">Availability:</p>
+              <ul className="space-y-2">
                 {skill.availability.map((a, idx) => {
                   const isBooked = bookedSlots.some(bs => bs.skillId === skill.id && bs.slot === a.slot)
                   return (
-                    <li key={idx}>
-                      {a.slot} {isBooked && '— Meeting Link: '} {isBooked && <a href={a.link} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">Join</a>}
+                    <li key={idx} className="text-center bg-gray-50 p-3 rounded-2xl border-2 border-gray-200">
+                      <span className="font-semibold text-lg">{a.slot}</span>
+                      {isBooked && (
+                        <>
+                          {' — '}
+                          <a href={a.link} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline font-bold text-lg">
+                            Join Meeting
+                          </a>
+                        </>
+                      )}
                     </li>
                   )
                 })}
               </ul>
             </div>
 
-            <div className="flex gap-2 mt-4">
+            <div className="btn-group mt-6">
               {skill.availability.filter(slot => !bookedSlots.some(bs => bs.skillId === skill.id && bs.slot === slot.slot)).map((slot, idx) => (
                 <button
                   key={idx}
                   onClick={() => onBookSkill(skill.id, skill.rate, slot)}
-                  className="text-white py-1 px-3 rounded text-sm bg-green-600 hover:bg-green-700"
+                  className="btn btn-primary btn-large glowing"
                 >
                   Book {slot.slot}
                 </button>
               ))}
-              <button onClick={() => onOpenReviewModal(skill.id)} className="bg-yellow-600 text-white py-1 px-3 rounded hover:bg-yellow-700 text-sm">Leave Review</button>
+              <button onClick={() => setReviewModal({ skillId: skill.id, isOpen: true, skill, mode: 'view' })} className="btn btn-info btn-large">View Reviews</button>
+              <button onClick={() => setReviewModal({ skillId: skill.id, isOpen: true, skill, mode: 'submit' })} className="btn btn-warning btn-large">Leave Review</button>
             </div>
+
+            {/* Reviews Section */}
+            {skill.feedbacks.length > 0 && (
+              <div className="mt-8 border-t-2 border-gray-200 pt-6">
+                <h4 className="text-2xl font-bold mb-4 text-center gradient-text">Recent Reviews</h4>
+                <div className="space-y-4 max-h-48 overflow-y-auto">
+                  {skill.feedbacks.slice(-2).map(feedback => (
+                    <div key={feedback.id} className="bg-gradient-to-r from-gray-50 to-white p-4 rounded-2xl border-2 border-gray-100 shadow-md">
+                      <div className="flex justify-between items-center mb-3">
+                        <span className="font-bold text-lg text-gray-800">{feedback.student}</span>
+                        <span className="text-sm text-gray-500 font-medium">{feedback.date}</span>
+                      </div>
+                      <div className="mb-3">
+                        <StarRating rating={feedback.rating} />
+                      </div>
+                      <p className="text-lg text-gray-700 font-medium">{feedback.comment}</p>
+                    </div>
+                  ))}
+                </div>
+                {skill.feedbacks.length > 2 && (
+                  <button
+                    onClick={() => setReviewModal({ skillId: skill.id, isOpen: true, skill, mode: 'view' })}
+                    className="text-blue-600 hover:underline text-lg font-bold mt-4 block text-center hover:text-blue-800 transition-colors"
+                  >
+                    View all {skill.feedbacks.length} reviews
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         ))}
       </div>
 
       {/* Register New Skill */}
-      <div className="w-full max-w-xl p-6 bg-white rounded-xl shadow-md">
-        <h2 className="text-2xl font-bold mb-4">Register New Skill</h2>
-        <div className="flex flex-col gap-3">
-          <input type="text" placeholder="Skill Name" value={form.name} onChange={e => setForm(prev => ({ ...prev, name: e.target.value }))} className="border px-3 py-2 rounded" />
-          <textarea placeholder="Description" value={form.description} onChange={e => setForm(prev => ({ ...prev, description: e.target.value }))} className="border px-3 py-2 rounded" />
-          <input type="number" placeholder="Rate (Algo token)" value={form.rate} onChange={e => setForm(prev => ({ ...prev, rate: e.target.value }))} className="border px-3 py-2 rounded" />
-          <select value={form.category} onChange={e => setForm(prev => ({ ...prev, category: e.target.value }))} className="border px-3 py-2 rounded">
-            <option value="">Select Category</option>
-            {SKILL_CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+      <div className="card card-centered w-full bg-gradient-to-br from-purple-900 via-indigo-900 to-black text-white border border-white/20 glowing">
+        <h2 className="text-4xl font-bold mb-8 text-center gradient-text floating">Register New Skill</h2>
+        <div className="flex flex-col gap-6">
+          <input type="text" placeholder="Skill Name" value={form.name} onChange={e => setForm(prev => ({ ...prev, name: e.target.value }))} className="border-2 border-white/30 bg-white/10 text-white px-6 py-4 rounded-2xl shadow-lg hover:shadow-xl transition-all backdrop-blur-sm placeholder-white/50 text-lg font-medium" />
+          <textarea placeholder="Description" value={form.description} onChange={e => setForm(prev => ({ ...prev, description: e.target.value }))} className="border-2 border-white/30 bg-white/10 text-white px-6 py-4 rounded-2xl shadow-lg hover:shadow-xl transition-all backdrop-blur-sm placeholder-white/50 text-lg font-medium" rows={4} />
+          <input type="text" placeholder="Receiver Wallet Address" value={form.receiver} onChange={e => setForm(prev => ({ ...prev, receiver: e.target.value }))} className="border-2 border-white/30 bg-white/10 text-white px-6 py-4 rounded-2xl shadow-lg hover:shadow-xl transition-all backdrop-blur-sm placeholder-white/50 text-lg font-medium" />
+          <input type="number" placeholder="Rate (Algo token)" value={form.rate} onChange={e => setForm(prev => ({ ...prev, rate: e.target.value }))} className="border-2 border-white/30 bg-white/10 text-white px-6 py-4 rounded-2xl shadow-lg hover:shadow-xl transition-all backdrop-blur-sm placeholder-white/50 text-lg font-medium" />
+          <select value={form.category} onChange={e => setForm(prev => ({ ...prev, category: e.target.value }))} className="border-2 border-white/30 bg-white/10 text-white px-6 py-4 rounded-2xl shadow-lg hover:shadow-xl transition-all backdrop-blur-sm text-lg font-medium">
+            <option value="" className="bg-gray-800">Select Category</option>
+            {SKILL_CATEGORIES.map(cat => <option key={cat} value={cat} className="bg-gray-800">{cat}</option>)}
           </select>
-          <select value={form.level} onChange={e => setForm(prev => ({ ...prev, level: e.target.value as any }))} className="border px-3 py-2 rounded">
-            {SKILL_LEVELS.map(level => <option key={level} value={level}>{level}</option>)}
+          <select value={form.level} onChange={e => setForm(prev => ({ ...prev, level: e.target.value as any }))} className="border-2 border-white/30 bg-white/10 text-white px-6 py-4 rounded-2xl shadow-lg hover:shadow-xl transition-all backdrop-blur-sm text-lg font-medium">
+            {SKILL_LEVELS.map(level => <option key={level} value={level} className="bg-gray-800">{level}</option>)}
           </select>
 
           {/* Dynamic Slots */}
-          <div className="mt-4">
-            <label className="font-semibold mb-2 block">⏰ Time Slots and Meeting Links</label>
+          <div className="mt-6">
+            <label className="font-bold mb-4 block text-center text-2xl">⏰ Time Slots and Meeting Links</label>
             {form.availability.map((a, idx) => (
-              <div key={idx} className="flex flex-col gap-2 mb-4 p-2 border rounded">
-                <div className="flex items-center gap-2">
+              <div key={idx} className="flex flex-col gap-4 mb-6 p-6 border-2 border-white/20 rounded-2xl shadow-lg bg-white/5 backdrop-blur-sm">
+                <div className="flex items-center gap-4">
                   <input
                     type="text"
                     placeholder="e.g. Monday 10 AM"
                     value={a.slot}
                     onChange={e => handleSlotChange(idx, e.target.value, a.link)}
-                    className="border px-2 py-1 rounded flex-1"
+                    className="border-2 border-white/30 bg-white/10 text-white px-4 py-3 rounded-xl flex-1 shadow-md hover:shadow-lg transition-all backdrop-blur-sm placeholder-white/50 text-lg font-medium"
                   />
                   <input
                     type="url"
                     placeholder="Meeting link"
                     value={a.link}
                     onChange={e => handleSlotChange(idx, a.slot, e.target.value)}
-                    className="border px-2 py-1 rounded flex-1"
+                    className="border-2 border-white/30 bg-white/10 text-white px-4 py-3 rounded-xl flex-1 shadow-md hover:shadow-lg transition-all backdrop-blur-sm placeholder-white/50 text-lg font-medium"
                   />
-                  <button onClick={() => handleRemoveSlot(idx)} className="text-red-500 font-bold">×</button>
+                  <button onClick={() => handleRemoveSlot(idx)} className="text-red-500 font-bold hover:text-red-700 transition-colors text-2xl px-3 py-1 rounded-lg hover:bg-red-500/20">×</button>
                 </div>
               </div>
             ))}
-            <button onClick={handleAddSlot} className="mt-2 bg-blue-600 text-white py-1 px-3 rounded hover:bg-blue-700 text-sm">Add Slot</button>
+            <div className="center-content mt-6">
+              <button onClick={handleAddSlot} className="btn btn-primary btn-large glowing">Add Slot</button>
+            </div>
           </div>
 
-          <button onClick={handleRegisterSkill} disabled={registerLoading} className="mt-4 bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700">
-            {registerLoading ? 'Registering...' : 'Register Skill'}
-          </button>
+          <div className="center-content mt-8">
+            <button onClick={handleRegisterSkill} disabled={registerLoading} className="btn btn-large glowing text-2xl px-12 py-6">
+              {registerLoading ? 'Registering...' : 'Register Skill'}
+            </button>
+          </div>
         </div>
       </div>
+
+      {/* Review Modal */}
+      {reviewModal.isOpen && (
+        <ReviewModal
+          skillId={reviewModal.skillId}
+          skill={reviewModal.skill}
+          mode={reviewModal.mode}
+          onClose={() => setReviewModal({ skillId: 0, isOpen: false, mode: 'submit' })}
+          onSubmit={(skillId: number, review: { rating: number; comment: string }) => {
+            // Handle review submission - add to skill's feedbacks
+            const newFeedback: Feedback = {
+              id: Date.now(), // Simple ID generation
+              student: userAddress.slice(0, 10) + '...',
+              rating: review.rating,
+              comment: review.comment,
+              date: new Date().toISOString().split('T')[0] // YYYY-MM-DD format
+            }
+
+            setSkills(prevSkills =>
+              prevSkills.map(skill =>
+                skill.id === skillId
+                  ? {
+                      ...skill,
+                      feedbacks: [...skill.feedbacks, newFeedback],
+                      rating: calculateNewRating(skill.rating, skill.feedbacks.length, review.rating)
+                    }
+                  : skill
+              )
+            )
+
+            enqueueSnackbar('Review submitted successfully!', { variant: 'success' })
+            setReviewModal({ skillId: 0, isOpen: false, mode: 'submit' })
+          }}
+        />
+      )}
     </div>
   )
 }

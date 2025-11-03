@@ -1,157 +1,264 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { useWallet } from '@txnlab/use-wallet-react'
 import { useSnackbar } from 'notistack'
+import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../../context/AuthContext'
 import { SkillSwapClient } from '../contracts/SkillSwap'
-import {
-  getAlgodConfigFromViteEnvironment,
-  getIndexerConfigFromViteEnvironment,
-} from '../utils/network/getAlgoClientConfigs'
-import { AlgorandClient } from '@algorandfoundation/algokit-utils'
+import { useWallet } from '@txnlab/use-wallet-react'
+import ConnectWallet from './ConnectWallet'
 
 interface UserProfileProps {
-  address: string
-  registered: boolean
-  onRegister: (name: string) => void
+  appClient: SkillSwapClient
 }
 
-const UserProfile: React.FC<UserProfileProps> = ({ address, registered, onRegister }) => {
+const UserProfile: React.FC<UserProfileProps> = ({ appClient }) => {
   const { enqueueSnackbar } = useSnackbar()
-  const { transactionSigner } = useWallet()
-  const [name, setName] = useState('')
-  const [reputation, setReputation] = useState(5)
-  const [balance, setBalance] = useState(150)
+  const navigate = useNavigate()
+  const { role, setRole } = useAuth()
+  const { activeAccount, activeAddress, wallets, transactionSigner } = useWallet()
+  const walletAddress = activeAccount?.address
+
+  const [registered, setRegistered] = useState(false)
+  const [reputation, setReputation] = useState<number | null>(null)
+  const [balance, setBalance] = useState<number | null>(null)
+  const [teacherTokens, setTeacherTokens] = useState<number | null>(null)
+  const [learnerNFTs, setLearnerNFTs] = useState<number | null>(null)
+  const [nftAssetIds, setNftAssetIds] = useState<string[]>([])
+  const [skillTokenId, setSkillTokenId] = useState<number | null>(null)
   const [loading, setLoading] = useState(false)
-  const [isFreshUser, setIsFreshUser] = useState(false)
-  const [appClient, setAppClient] = useState<SkillSwapClient | null>(null)
+  const [fetching, setFetching] = useState(false)
+  const [bookingId, setBookingId] = useState<string>('') // For claiming NFT
+  const [claiming, setClaiming] = useState(false)
 
-  // Initialize Algorand client and app client
-  useEffect(() => {
-    const initClient = async () => {
-      if (!transactionSigner) return
-
-      try {
-        const algodConfig = getAlgodConfigFromViteEnvironment()
-        const indexerConfig = getIndexerConfigFromViteEnvironment()
-        const algorand = AlgorandClient.fromConfig({ algodConfig, indexerConfig })
-        algorand.setDefaultSigner(transactionSigner)
-
-        // For now, we'll use a placeholder app ID until the contract is deployed
-        // In production, this would be retrieved from environment or deployment
-        const appId = process.env.VITE_SKILL_SWAP_APP_ID || '123456789' // Placeholder
-        const client = new SkillSwapClient({ appId: Number(appId), algorand })
-        setAppClient(client)
-      } catch (error) {
-        console.error('Failed to initialize app client:', error)
-      }
-    }
-
-    initClient()
-  }, [transactionSigner])
-
+  /** ------------------------------------------------
+   * 🧾 Register user (wallet = username)
+   * ------------------------------------------------ */
   const registerUser = useCallback(async () => {
-    if (!name.trim() || !appClient) return
-
+    if (!walletAddress) {
+      enqueueSnackbar('Please connect your wallet first.', { variant: 'warning' })
+      return
+    }
     setLoading(true)
     try {
-      await appClient.register_user({ name })
-      enqueueSnackbar('Registration successful! Welcome to SkillSwap!', { variant: 'success' })
-      onRegister(name)
-      setIsFreshUser(true)
+      const res = await appClient.register_user(walletAddress, role || 'learner')
+      enqueueSnackbar(res.return || 'Registration successful!', { variant: 'success' })
+      setRegistered(true)
+      await fetchUserData()
     } catch (error: any) {
       console.error('Registration error:', error)
-      enqueueSnackbar(`Registration failed: ${error.message || 'Unknown error'}`, { variant: 'error' })
+      enqueueSnackbar(`❌ Registration failed: ${error.message || 'Unknown error'}`, { variant: 'error' })
     } finally {
       setLoading(false)
     }
-  }, [name, appClient, enqueueSnackbar, onRegister])
+  }, [walletAddress, appClient, role, enqueueSnackbar])
 
+  /** ------------------------------------------------
+   * 📊 Fetch user data from blockchain
+   * ------------------------------------------------ */
   const fetchUserData = useCallback(async () => {
-    if (!registered || !appClient) return
-
+    if (!walletAddress || !appClient) return
+    setFetching(true)
     try {
-      const userReputation = await appClient.get_reputation({ user: address })
-      const userBalance = await appClient.get_user_balance({ user: address })
+      const balanceRes = await appClient.get_user_balance(walletAddress)
+      const repRes = await appClient.get_reputation(walletAddress)
+      const tokenRes = await appClient.get_skill_token_id(walletAddress)
+      const nftRes = await appClient.get_user_nft_asset_ids(walletAddress)
 
-      setReputation(Number(userReputation.return))
-      setBalance(Number(userBalance.return))
+      const nfts = nftRes.return || []
+      setBalance(balanceRes.return || 0)
+      setReputation(repRes.return || 0)
+      setSkillTokenId(tokenRes.return || null)
+      setNftAssetIds(nfts.map(String))
+      setLearnerNFTs(nfts.length)
+      setTeacherTokens(balanceRes.return || 0)
+      setRegistered(true)
+    } catch (error) {
+      console.error('Error fetching user data:', error)
+      enqueueSnackbar('Failed to fetch user data', { variant: 'error' })
+    } finally {
+      setFetching(false)
+    }
+  }, [walletAddress, appClient, enqueueSnackbar])
+
+  /** ------------------------------------------------
+   * 🎁 Claim NFT after booking
+   * ------------------------------------------------ */
+  const claimNFT = useCallback(async () => {
+    if (!walletAddress || !activeAccount || !transactionSigner) {
+      enqueueSnackbar('Please connect and activate your wallet first.', { variant: 'warning' })
+      return
+    }
+    if (!bookingId) {
+      enqueueSnackbar('Please enter your NFT Asset ID.', { variant: 'warning' })
+      return
+    }
+
+    const assetIdNum = parseInt(bookingId)
+    if (isNaN(assetIdNum)) {
+      enqueueSnackbar('Please enter a valid NFT Asset ID.', { variant: 'warning' })
+      return
+    }
+
+    setClaiming(true)
+    try {
+      const res = await appClient.claim_nft(walletAddress, assetIdNum, transactionSigner)
+      if (res.return) {
+        enqueueSnackbar('NFT claimed successfully!', { variant: 'success' })
+        setBookingId('')
+        await fetchUserData()
+      } else {
+        enqueueSnackbar('NFT claim failed. Please check the Asset ID and try again.', { variant: 'error' })
+      }
     } catch (error: any) {
-      console.error('Failed to fetch user data:', error)
-      // Fallback to simulated data if contract calls fail
-      setReputation(0)
-      setBalance(0)
-      enqueueSnackbar('Using default profile data - contract integration pending', { variant: 'info' })
+      console.error('Error claiming NFT:', error)
+      enqueueSnackbar(`❌ Claim failed: ${error.message || 'Unknown error'}`, { variant: 'error' })
+    } finally {
+      setClaiming(false)
     }
-  }, [registered, appClient, address, enqueueSnackbar])
+  }, [walletAddress, activeAccount, transactionSigner, bookingId, appClient, enqueueSnackbar, fetchUserData])
 
+  /** ------------------------------------------------
+   * 🔄 Auto load on wallet connect
+   * ------------------------------------------------ */
   useEffect(() => {
-    if (registered) {
+    if (walletAddress) {
       fetchUserData()
-      // If registered on mount, user is not fresh anymore
-      setIsFreshUser(false)
     }
-  }, [registered, fetchUserData])
+  }, [walletAddress, fetchUserData])
+
+  /** ------------------------------------------------
+   * 🧱 UI Render
+   * ------------------------------------------------ */
+  if (!walletAddress) {
+    return (
+      <div className="p-6 text-center bg-gray-900 text-white rounded-lg">
+        <p className="mb-4">Please connect your Algorand wallet to view your profile and access all functionalities.</p>
+        <ConnectWallet openModal={true} closeModal={() => {}} />
+      </div>
+    )
+  }
 
   return (
-    <div className="w-full flex flex-col items-center justify-center min-h-[60vh]">
-      <h2 className="text-4xl font-bold text-transparent bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text mb-8 flex items-center justify-center gap-3">
+    <div className="w-full flex flex-col items-center justify-center min-h-[60vh] px-4 bg-gradient-to-br from-purple-900 via-indigo-900 to-black" style={{ background: 'linear-gradient(to bottom right, #581c87, #3730a3, #000000)' }}>
+      <h2 className="text-5xl font-bold text-transparent bg-gradient-to-r from-cyan-400 via-purple-500 to-pink-500 bg-clip-text mb-10">
         🎨 Your Profile
       </h2>
 
       {!registered ? (
-        <div className="space-y-8 w-full max-w-md">
-          <p className="text-gray-700 text-xl font-medium text-center">Enter your name to register and start using SkillSwap:</p>
-          <input
-            type="text"
-            placeholder="Your Name"
-            className="w-full px-6 py-4 border-2 border-purple-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-purple-300 focus:border-purple-400 transition-all duration-500 bg-white/90 backdrop-blur-sm text-xl text-center"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          />
-          <button
-            onClick={registerUser}
-            disabled={loading || !name.trim()}
-            className={`w-full py-5 rounded-2xl font-bold text-xl transition-all duration-500 transform hover:scale-105 shadow-2xl ${
-              loading || !name.trim()
-                ? 'bg-gray-400 cursor-not-allowed text-white'
-                : 'bg-gradient-to-r from-purple-500 via-pink-500 to-red-500 hover:from-purple-600 hover:via-pink-600 hover:to-red-600 text-white'
-            }`}
-          >
-            {loading ? '🔄 Registering...' : '✨ Register Now'}
-          </button>
+        <div className="card bg-transparent glowing text-center p-8 border border-white/10 rounded-2xl">
+          <p className="text-xl text-white mb-4">Register using your wallet address:</p>
+          <div className="flex flex-col items-center gap-4">
+            <select
+              className="bg-gray-800 text-white rounded px-4 py-2"
+              value={role || 'learner'}
+              onChange={(e) => setRole(e.target.value as 'teacher' | 'learner')}
+            >
+              <option value="learner">Learner</option>
+              <option value="teacher">Teacher</option>
+            </select>
+            <button
+              onClick={registerUser}
+              disabled={loading}
+              className="btn btn-large glowing text-lg px-8 py-3 bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-400 hover:to-indigo-400 transition-all duration-300"
+            >
+              {loading ? '🔄 Registering...' : '✨ Register Now'}
+            </button>
+          </div>
         </div>
       ) : (
-        <div className="space-y-10 w-full max-w-md">
-          <div className="text-center">
-            <h3 className="text-3xl font-bold text-gray-800 mb-4">
-              {isFreshUser ? (
-                <>🎉 Welcome aboard, {name || 'new user'}! Let's get started.</>
-              ) : (
-                <>Welcome back{name ? `, ${name}` : ''}! 👋</>
-              )}
-            </h3>
-            <p className="text-xl text-gray-600 font-medium">
-              {isFreshUser
-                ? 'Thank you for joining SkillSwap. We\'re excited to have you!'
-                : 'Your SkillSwap summary is below.'}
-            </p>
+        <div className="space-y-10 w-full max-w-2xl">
+          <div className="text-center text-white">
+            <h3 className="text-3xl font-bold mb-2">👋 Welcome Back</h3>
+            <p className="text-cyan-300 break-all">{walletAddress}</p>
+            {skillTokenId && (
+              <p className="text-sm text-purple-300 mt-2">Skill Token ID: {skillTokenId}</p>
+            )}
           </div>
 
-          <div className="text-center">
-            <div className="text-purple-600 font-bold mb-3 flex items-center justify-center gap-2 text-lg">🏠 Wallet Address</div>
-            <div className="bg-gradient-to-r from-purple-100 to-pink-100 p-4 rounded-2xl font-mono break-all text-gray-700 border-2 border-purple-200 shadow-lg text-lg text-center">
-              {address}
+          <div className="grid grid-cols-2 gap-6 text-center">
+            <div className="bg-gradient-to-br from-purple-800 to-indigo-900 p-6 rounded-xl shadow-lg border border-white/10">
+              <p className="text-5xl font-bold text-green-300">{reputation ?? '—'}</p>
+              <p className="text-lg text-green-200">⏰ Reputation</p>
+            </div>
+            <div className="bg-gradient-to-br from-blue-800 to-indigo-900 p-6 rounded-xl shadow-lg border border-white/10">
+              <p className="text-5xl font-bold text-blue-300">{balance ?? '—'}</p>
+              <p className="text-lg text-blue-200">💎 Skill Tokens</p>
+            </div>
+            <div className="bg-gradient-to-br from-yellow-800 to-orange-900 p-6 rounded-xl shadow-lg border border-white/10">
+              <p className="text-5xl font-bold text-yellow-300">{teacherTokens ?? '—'}</p>
+              <p className="text-lg text-yellow-200">🎓 Teacher Tokens</p>
+            </div>
+            <div className="bg-gradient-to-br from-pink-800 to-purple-900 p-6 rounded-xl shadow-lg border border-white/10">
+              <p className="text-5xl font-bold text-pink-300">{learnerNFTs ?? '—'}</p>
+              <p className="text-lg text-pink-200">🏆 Learner NFTs</p>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-8">
-            <div className="text-center bg-gradient-to-br from-green-100 to-emerald-200 border-2 border-green-300 rounded-3xl p-8 transform hover:scale-105 transition-all duration-500 shadow-2xl">
-              <p className="text-5xl font-bold text-green-700 mb-2">{reputation}</p>
-              <p className="text-lg text-green-800 font-bold">⏰ Hours Taught</p>
+          {nftAssetIds.length > 0 && (
+            <div className="text-center mt-6">
+              <h4 className="text-xl text-cyan-300 font-bold mb-3">Your NFTs:</h4>
+              <div className="flex flex-wrap justify-center gap-3">
+                {nftAssetIds.map((id) => (
+                  <span
+                    key={id}
+                    className="bg-gradient-to-r from-cyan-600/30 to-purple-600/30 px-4 py-2 rounded-lg text-xs font-mono text-cyan-200 border border-cyan-400/50 shadow-lg"
+                  >
+                    #{id}
+                  </span>
+                ))}
+              </div>
             </div>
-            <div className="text-center bg-gradient-to-br from-blue-100 to-cyan-200 border-2 border-blue-300 rounded-3xl p-8 transform hover:scale-105 transition-all duration-500 shadow-2xl">
-              <p className="text-5xl font-bold text-blue-700 mb-2">{balance}</p>
-              <p className="text-lg text-blue-800 font-bold">💎 Skill Tokens</p>
-            </div>
+          )}
+
+          {/* Claim NFT Section */}
+          <div className="card bg-gray-800/50 p-6 rounded-xl text-center border border-white/10 mt-8">
+            <h4 className="text-lg text-white font-semibold mb-2">🎁 Claim NFT</h4>
+            <input
+              type="text"
+              placeholder="Enter NFT Asset ID"
+              value={bookingId}
+              onChange={(e) => setBookingId(e.target.value)}
+              className="px-4 py-2 rounded w-full max-w-xs mb-4 text-black"
+            />
+            <button
+              onClick={claimNFT}
+              disabled={claiming || !transactionSigner}
+              className="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded transition disabled:opacity-50"
+            >
+              {claiming ? '🔄 Claiming...' : 'Claim NFT'}
+            </button>
+          </div>
+
+          <div className="flex justify-center gap-4 mt-8">
+            <button
+              onClick={() => navigate('/')}
+              className="btn btn-large glowing text-xl px-8 py-3 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-400 hover:to-emerald-400 transition-all duration-300"
+            >
+              🏠 Back to Home
+            </button>
+            <button
+              onClick={fetchUserData}
+              className="btn btn-large glowing text-xl px-8 py-3 bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-400 hover:to-purple-400 transition-all duration-300"
+            >
+              🔄 Refresh Data
+            </button>
+            {activeAddress && (
+              <button
+                onClick={async () => {
+                  if (wallets) {
+                    const activeWallet = wallets.find((w) => w.isActive)
+                    if (activeWallet) {
+                      await activeWallet.disconnect()
+                    } else {
+                      localStorage.removeItem('@txnlab/use-wallet:v3')
+                      window.location.reload()
+                    }
+                  }
+                }}
+                className="btn btn-large glowing text-xl px-8 py-3 bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-400 hover:to-pink-400 transition-all duration-300"
+              >
+                🚪 Disconnect Wallet
+              </button>
+            )}
           </div>
         </div>
       )}

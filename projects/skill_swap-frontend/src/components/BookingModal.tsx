@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react'
+import React, { useState, useMemo, useEffect, useReducer } from 'react'
 import { useSnackbar } from 'notistack'
 import { useWallet } from '@txnlab/use-wallet-react'
 import { AlgorandClient, algo } from '@algorandfoundation/algokit-utils'
@@ -7,6 +7,8 @@ import {
   getIndexerConfigFromViteEnvironment,
 } from '../utils/network/getAlgoClientConfigs'
 import algosdk from 'algosdk'
+import TimeSlotSelector from './TimeSlotSelector'
+import { createNFT } from '../utils/nftUtils'
 
 interface BookingModalProps {
   openModal: boolean
@@ -14,10 +16,42 @@ interface BookingModalProps {
   skillId: number
   initialSkillRate: number
   selectedSlot: { slot: string; link: string }
-  algorand: AlgorandClient
+  algorand: AlgorandClient | null
   activeAddress: string | undefined
   onBookingSuccess?: (skillId: number, slot: string) => void
+  defaultReceiver?: string
+  timeSlots?: { time: string; meetLink: string }[]
 }
+
+interface TimeSlot {
+  time: string
+  meetLink: string
+}
+
+interface BookingState {
+  loading: boolean
+  bookingConfirmed: boolean
+  bookingError: string | null
+}
+
+type BookingAction =
+  | { type: 'SET_LOADING'; payload: boolean }
+  | { type: 'SET_CONFIRMED'; payload: boolean }
+  | { type: 'SET_ERROR'; payload: string | null }
+
+const bookingReducer = (state: BookingState, action: BookingAction): BookingState => {
+  switch (action.type) {
+    case 'SET_LOADING':
+      return { ...state, loading: action.payload }
+    case 'SET_CONFIRMED':
+      return { ...state, bookingConfirmed: action.payload }
+    case 'SET_ERROR':
+      return { ...state, bookingError: action.payload }
+    default:
+      return state
+  }
+}
+
 const DEFAULT_RECEIVER =
   '2ZTFJNDXPWDETGJQQN33HAATRHXZMBWESKO2AUFZUHERH2H3TG4XTNPL4Y'
 
@@ -30,13 +64,17 @@ const BookingModal: React.FC<BookingModalProps> = ({
   algorand,
   activeAddress,
   onBookingSuccess,
+  defaultReceiver = DEFAULT_RECEIVER,
+  timeSlots: propTimeSlots,
 }) => {
   const [skillRate, setSkillRate] = useState<number>(initialSkillRate || 0)
-  const [selectedTimeSlot, setSelectedTimeSlot] = useState<{ time: string; meetLink: string } | null>(null)
-  const [receiverAddress, setReceiverAddress] = useState<string>(DEFAULT_RECEIVER)
-  const [loading, setLoading] = useState<boolean>(false)
-  const [bookingConfirmed, setBookingConfirmed] = useState<boolean>(false)
-  const [bookingError, setBookingError] = useState<string | null>(null)
+  const [selectedTimeSlot, setSelectedTimeSlot] = useState<TimeSlot | null>(null)
+  const [receiverAddress, setReceiverAddress] = useState<string>(defaultReceiver)
+  const [bookingState, dispatch] = useReducer(bookingReducer, {
+    loading: false,
+    bookingConfirmed: false,
+    bookingError: null,
+  })
 
   const { enqueueSnackbar } = useSnackbar()
   const { transactionSigner } = useWallet()
@@ -49,46 +87,55 @@ const BookingModal: React.FC<BookingModalProps> = ({
   const indexerConfig = getIndexerConfigFromViteEnvironment()
 
   const client = useMemo(() => {
-    const c = AlgorandClient.fromConfig({ algodConfig, indexerConfig })
-    if (transactionSigner) c.setDefaultSigner(transactionSigner)
-    return c
-  }, [transactionSigner, algodConfig, indexerConfig])
+    if (algorand) {
+      const c = algorand
+      if (transactionSigner) c.setDefaultSigner(transactionSigner)
+      return c
+    }
+    return null
+  }, [algorand, transactionSigner])
 
-  /** ---------------- UPDATED TIME SLOTS ---------------- */
-  const timeSlots = [
+  /** ---------------- TIME SLOTS ---------------- */
+  const defaultTimeSlots: TimeSlot[] = [
     { time: '10:00 AM', meetLink: 'https://meet.google.com/new-1010-session' },
     { time: '12:00 PM', meetLink: 'https://meet.google.com/new-1200-session' },
     { time: '2:00 PM', meetLink: 'https://meet.google.com/new-1400-session' },
     { time: '4:00 PM', meetLink: 'https://meet.google.com/new-1600-session' },
   ]
+  const timeSlots = propTimeSlots || defaultTimeSlots
 
   // Automatically assign a default slot once booking is confirmed
   useEffect(() => {
-    if (bookingConfirmed && !selectedTimeSlot) {
+    if (bookingState.bookingConfirmed && !selectedTimeSlot) {
       setSelectedTimeSlot(timeSlots[0])
     }
-  }, [bookingConfirmed])
+  }, [bookingState.bookingConfirmed, selectedTimeSlot, timeSlots])
 
   // Reset state when modal opens
   useEffect(() => {
     if (openModal) {
       setSelectedTimeSlot(null)
-      setBookingConfirmed(false)
-      setBookingError(null)
+      dispatch({ type: 'SET_CONFIRMED', payload: false })
+      dispatch({ type: 'SET_ERROR', payload: null })
     }
   }, [openModal])
 
   /** ---------------- PAYMENT METHODS ---------------- */
+  /**
+   * Sends payment using the connected wallet signer.
+   * @returns Promise<string> - Transaction ID
+   */
   const sendPayment = async (): Promise<string> => {
-    if (!transactionSigner || !activeAddress) {
-      enqueueSnackbar('Please connect your wallet.', { variant: 'warning' })
-      return Promise.reject('Wallet not connected')
+    if (!transactionSigner || !activeAddress || !client) {
+      const errorMsg = 'Please connect your wallet.'
+      enqueueSnackbar(errorMsg, { variant: 'warning' })
+      return Promise.reject(errorMsg)
     }
 
     try {
       enqueueSnackbar(`Sending ${totalPayment.toFixed(3)} ALGO...`, { variant: 'info' })
 
-      const result = await client.send.payment({
+      const result = await client!.send.payment({
         sender: activeAddress,
         receiver: receiverAddress,
         amount: algo(totalPayment),
@@ -98,66 +145,55 @@ const BookingModal: React.FC<BookingModalProps> = ({
       enqueueSnackbar(`✅ Payment successful! TxID: ${result.txIds[0]}`, { variant: 'success' })
       return result.txIds[0]
     } catch (error: any) {
-      enqueueSnackbar('Signer unavailable or error occurred. Trying fallback...', {
-        variant: 'warning',
-      })
-      return fallbackPayment()
+      const errorMsg = `Payment failed: ${error.message || error}`
+      enqueueSnackbar(errorMsg, { variant: 'error' })
+      throw new Error(errorMsg)
     }
   }
 
-  const fallbackPayment = async (): Promise<string> => {
-    try {
-      const algodClient = new algosdk.Algodv2(
-        algodConfig.token as string,
-        algodConfig.server,
-        algodConfig.port as number
-      )
-      const mnemonic = localStorage.getItem('mnemonic') || ''
-      const senderAccount = algosdk.mnemonicToSecretKey(mnemonic)
-      const params = await algodClient.getTransactionParams().do()
-
-      const txn = algosdk.makePaymentTxnWithSuggestedParamsFromObject({
-        sender: senderAccount.addr,
-        receiver: receiverAddress,
-        amount: Math.floor(totalPayment * 1e6),
-        suggestedParams: params,
-      })
-
-      const signedTxn = txn.signTxn(senderAccount.sk)
-      const sendResponse = await algodClient.sendRawTransaction(signedTxn).do()
-      const txId = sendResponse.txid
-
-      enqueueSnackbar(`✅ Payment successful! TxID: ${txId}`, { variant: 'success' })
-      return txId
-    } catch (error: any) {
-      enqueueSnackbar(`❌ Payment failed: ${error.message || error}`, { variant: 'error' })
-      throw error
-    }
-  }
+  // Removed insecure fallback payment method for security reasons
 
   /** ---------------- HANDLE BOOKING ---------------- */
+  /**
+   * Handles the booking process including validation and payment.
+   */
   const handleBookSession = async () => {
-    if (!activeAddress) {
-      setBookingError('Please connect your wallet.')
+    if (!activeAddress || !transactionSigner) {
+      dispatch({ type: 'SET_ERROR', payload: 'Please connect your wallet and ensure it is active.' })
       return
     }
     if (!isReceiverValid) {
-      setBookingError('Invalid receiver address.')
+      dispatch({ type: 'SET_ERROR', payload: 'Invalid receiver address.' })
       return
     }
     if (!isSkillRateValid) {
-      setBookingError('Please enter a valid skill rate.')
+      dispatch({ type: 'SET_ERROR', payload: 'Please enter a valid skill rate.' })
       return
     }
 
-    setLoading(true)
-    setBookingError(null)
+    dispatch({ type: 'SET_LOADING', payload: true })
+    dispatch({ type: 'SET_ERROR', payload: null })
     try {
       await sendPayment()
       enqueueSnackbar('Booking your session...', { variant: 'info' })
-      await new Promise((res) => setTimeout(res, 1500))
+      await new Promise((resolve) => setTimeout(resolve, 1500)) // Simulate booking delay
 
-      setBookingConfirmed(true)
+      // Award NFT for booking - Create real NFT asset
+      try {
+        const assetId = await createNFT(activeAddress!, transactionSigner, client!, skillId)
+        if (assetId) {
+          console.log(`NFT Asset created with ID: ${assetId} for wallet: ${activeAddress}`)
+          enqueueSnackbar(`🎨 NFT Asset #${assetId} created and stored in your wallet!`, { variant: 'success' })
+          enqueueSnackbar(`🎁 Check your profile to view this NFT in your collection!`, { variant: 'info' })
+        } else {
+          enqueueSnackbar('NFT creation failed, but booking was successful.', { variant: 'warning' })
+        }
+      } catch (error) {
+        console.error('Failed to create NFT:', error)
+        enqueueSnackbar('NFT creation failed, but booking was successful.', { variant: 'warning' })
+      }
+
+      dispatch({ type: 'SET_CONFIRMED', payload: true })
       enqueueSnackbar(`🎉 Your session has been successfully booked!`, {
         variant: 'success',
       })
@@ -166,10 +202,10 @@ const BookingModal: React.FC<BookingModalProps> = ({
       }
     } catch (error: any) {
       const errorMessage = error.message || error || 'Unknown error occurred'
-      setBookingError(`Booking failed: ${errorMessage}`)
+      dispatch({ type: 'SET_ERROR', payload: `Booking failed: ${errorMessage}` })
       enqueueSnackbar(`❌ Booking failed: ${errorMessage}`, { variant: 'error' })
     } finally {
-      setLoading(false)
+      dispatch({ type: 'SET_LOADING', payload: false })
     }
   }
 
@@ -180,13 +216,14 @@ const BookingModal: React.FC<BookingModalProps> = ({
       onClose={() => setModalState(false)}
       aria-modal="true"
       role="dialog"
+      style={{ background: 'linear-gradient(to bottom right, #581c87, #3730a3, #000000)' }}
     >
       <form
         method="dialog"
         className="modal-box bg-gradient-to-br from-white via-purple-50 to-pink-50 border-2 border-purple-200 shadow-3xl max-w-2xl p-10 rounded-3xl"
         onSubmit={(e) => {
           e.preventDefault()
-          if (!loading) handleBookSession()
+          if (!bookingState.loading) handleBookSession()
         }}
         aria-labelledby="booking_modal_title"
       >
@@ -213,25 +250,35 @@ const BookingModal: React.FC<BookingModalProps> = ({
           </div>
         </div>
 
-        {/* Receiver */}
+            {/* Receiver */}
         <div className="mb-8">
-          <label className="text-xl font-bold text-gray-700 mb-3 block">🏠 Receiver Address</label>
+          <label
+            htmlFor="receiver-address"
+            className="text-xl font-bold text-gray-700 mb-3 block"
+          >
+            🏠 Receiver Address
+          </label>
           <input
+            id="receiver-address"
             type="text"
             value={receiverAddress}
             onChange={(e) => {
               setReceiverAddress(e.target.value.trim())
-              setBookingError(null)
+              dispatch({ type: 'SET_ERROR', payload: null })
             }}
-            className={`w-full px-6 py-4 rounded-2xl border-2 text-xl transition-all duration-500 ${
-              isReceiverValid || receiverAddress === ''
-                ? 'border-purple-200 focus:ring-4 focus:ring-purple-300'
-                : 'border-red-400 focus:ring-4 focus:ring-red-300'
-            }`}
-            disabled={loading || bookingConfirmed}
+            className={`w-full px-4 py-3 rounded-2xl border-2 text-lg font-mono transition-all duration-500
+              ${
+                isReceiverValid || receiverAddress === ''
+                  ? 'border-purple-200 focus:ring-4 focus:ring-purple-300'
+                  : 'border-red-400 focus:ring-4 focus:ring-red-300'
+              }
+              placeholder:text-gray-400`}
+            disabled={bookingState.loading || bookingState.bookingConfirmed}
             placeholder="Enter Algorand address"
+            aria-describedby="receiver-error"
           />
         </div>
+
 
         {/* Skill Rate (Fixed) */}
         <div className="mb-8">
@@ -242,9 +289,13 @@ const BookingModal: React.FC<BookingModalProps> = ({
         </div>
 
         {/* Error Message */}
-        {bookingError && (
-          <div className="mt-6 p-4 bg-red-50 border-2 border-red-200 rounded-2xl">
-            <p className="text-red-700 font-bold">❌ {bookingError}</p>
+        {bookingState.bookingError && (
+          <div
+            id="receiver-error"
+            className="mt-6 p-4 bg-red-50 border-2 border-red-200 rounded-2xl"
+            role="alert"
+          >
+            <p className="text-red-700 font-bold">❌ {bookingState.bookingError}</p>
           </div>
         )}
 
@@ -253,15 +304,26 @@ const BookingModal: React.FC<BookingModalProps> = ({
           <strong className="text-2xl text-gray-800">💎 Total: {totalPayment.toFixed(3)} ALGO</strong>
           <button
             type="submit"
-            disabled={loading || bookingConfirmed}
+            disabled={bookingState.loading || bookingState.bookingConfirmed}
             className="bg-gradient-to-r from-purple-500 via-pink-500 to-red-500 text-white px-8 py-4 rounded-2xl font-bold text-xl hover:scale-105 transition-all disabled:opacity-50"
+            aria-label={
+              bookingState.loading
+                ? 'Processing payment'
+                : bookingState.bookingConfirmed
+                ? 'Booking confirmed'
+                : 'Pay and book session'
+            }
           >
-            {loading ? '🔄 Processing...' : bookingConfirmed ? '✅ Booked' : '✨ Pay & Book'}
+            {bookingState.loading
+              ? '🔄 Processing...'
+              : bookingState.bookingConfirmed
+              ? '✅ Booked'
+              : '✨ Pay & Book'}
           </button>
         </div>
 
         {/* ---------------- SHOW SLOTS ONLY AFTER BOOKING CONFIRMATION ---------------- */}
-        {bookingConfirmed && (
+        {bookingState.bookingConfirmed && (
           <div className="mt-8 p-6 bg-gradient-to-r from-green-50 to-blue-50 rounded-3xl border-2 border-green-200 shadow-lg">
             <h4 className="text-2xl font-bold text-green-700 mb-4">🎉 Booking Confirmed!</h4>
             <p className="text-lg text-gray-700 mb-4">
@@ -269,22 +331,11 @@ const BookingModal: React.FC<BookingModalProps> = ({
             </p>
 
             {/* Time Slots (now visible only after booking) */}
-            <div className="grid grid-cols-2 gap-4 mb-6">
-              {timeSlots.map((slot) => (
-                <button
-                  key={slot.time}
-                  type="button"
-                  onClick={() => setSelectedTimeSlot(slot)}
-                  className={`px-6 py-3 rounded-2xl border-2 font-bold text-lg transition-all duration-500 ${
-                    selectedTimeSlot?.time === slot.time
-                      ? 'bg-gradient-to-r from-green-500 to-blue-500 text-white border-green-500 shadow-xl'
-                      : 'bg-white hover:bg-green-50 border-green-200 text-gray-700'
-                  }`}
-                >
-                  {slot.time}
-                </button>
-              ))}
-            </div>
+            <TimeSlotSelector
+              timeSlots={timeSlots}
+              selectedTimeSlot={selectedTimeSlot}
+              onSelectSlot={setSelectedTimeSlot}
+            />
 
             {selectedTimeSlot && (
               <div className="p-4 bg-white rounded-2xl border-2 border-green-100">
@@ -296,21 +347,23 @@ const BookingModal: React.FC<BookingModalProps> = ({
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4">
                   <button
-                    onClick={() => window.open(selectedSlot.link, '_blank')}
+                    onClick={() => window.open(selectedTimeSlot.meetLink, '_blank')}
                     className="bg-gradient-to-r from-green-500 to-blue-500 text-white px-6 py-3 rounded-2xl font-bold text-lg hover:scale-105 transition-all flex-1"
+                    aria-label={`Join meeting at ${selectedTimeSlot.time}`}
                   >
                     🔗 Join Meeting
                   </button>
                   <button
                     onClick={async () => {
                       try {
-                        await navigator.clipboard.writeText(selectedSlot.link)
+                        await navigator.clipboard.writeText(selectedTimeSlot.meetLink)
                         enqueueSnackbar('Link copied to clipboard!', { variant: 'success' })
                       } catch (err) {
                         enqueueSnackbar('Failed to copy link', { variant: 'error' })
                       }
                     }}
                     className="bg-gradient-to-r from-blue-500 to-purple-500 text-white px-6 py-3 rounded-2xl font-bold text-lg hover:scale-105 transition-all flex-1"
+                    aria-label="Copy meeting link to clipboard"
                   >
                     📋 Copy Link
                   </button>
@@ -325,9 +378,10 @@ const BookingModal: React.FC<BookingModalProps> = ({
           type="button"
           onClick={() => setModalState(false)}
           className="mt-8 w-full text-gray-500 hover:text-gray-700 underline text-lg font-bold"
-          disabled={loading}
+          disabled={bookingState.loading}
+          aria-label={bookingState.bookingConfirmed ? 'Close modal' : 'Cancel booking'}
         >
-          {bookingConfirmed ? '✨ Close' : '🚫 Cancel'}
+          {bookingState.bookingConfirmed ? '✨ Close' : '🚫 Cancel'}
         </button>
       </form>
     </dialog>

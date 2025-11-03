@@ -5,6 +5,7 @@ interface Skill {
   name: string
   description: string
   teacher: string
+  receiver: string
   rate: number
   category: string
   level: 'Beginner' | 'Intermediate' | 'Advanced'
@@ -31,6 +32,7 @@ const SkillRegistrationForm: React.FC<SkillRegistrationFormProps> = ({ onRegiste
   const [formData, setFormData] = useState({
     name: '',
     description: '',
+    receiver: '',
     rate: '',
     category: '',
     level: 'Beginner' as 'Beginner' | 'Intermediate' | 'Advanced',
@@ -58,6 +60,7 @@ const SkillRegistrationForm: React.FC<SkillRegistrationFormProps> = ({ onRegiste
       name: formData.name,
       description: formData.description,
       teacher: userAddress,
+      receiver: formData.receiver,
       rate: Number(formData.rate),
       category: formData.category,
       level: formData.level,
@@ -70,6 +73,7 @@ const SkillRegistrationForm: React.FC<SkillRegistrationFormProps> = ({ onRegiste
     setFormData({
       name: '',
       description: '',
+      receiver: '',
       rate: '',
       category: '',
       level: 'Beginner',
@@ -80,92 +84,136 @@ const SkillRegistrationForm: React.FC<SkillRegistrationFormProps> = ({ onRegiste
   const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 
   return (
-    <div className="w-full max-w-md mx-auto mt-8 p-6 bg-white rounded-xl shadow-md">
-      <h2 className="text-xl font-bold mb-4">Register New Skill</h2>
-      <form onSubmit={handleSubmit}>
-        <div className="mb-4">
-          <label className="block text-sm font-medium mb-2">Skill Name</label>
+    <div
+      className="card card-centered w-full text-white border border-white/20"
+      style={{ background: 'linear-gradient(to bottom right, #581c87, #3730a3)' }}
+    >
+      <h2 className="text-2xl font-bold mb-8 text-center">Register New Skill</h2>
+
+      <form onSubmit={handleSubmit} className="form-container">
+        {/* Skill Name */}
+        <div>
+          <label className="form-label">Skill Name</label>
           <input
             type="text"
             name="name"
             value={formData.name}
             onChange={handleChange}
-            className="w-full border px-3 py-2 rounded"
+            className="form-input"
+            placeholder="Enter skill name"
             required
           />
         </div>
-        <div className="mb-4">
-          <label className="block text-sm font-medium mb-2">Description</label>
+
+        {/* Receiver Wallet Address */}
+        <div>
+          <label className="form-label">Receiver Wallet Address</label>
+          <input
+            type="text"
+            name="receiver"
+            value={formData.receiver}
+            onChange={handleChange}
+            className="form-input"
+            placeholder="Enter receiver wallet address"
+            required
+          />
+        </div>
+
+        {/* Description */}
+        <div>
+          <label className="form-label">Description</label>
           <textarea
             name="description"
             value={formData.description}
             onChange={handleChange}
-            className="w-full border px-3 py-2 rounded"
+            className="form-textarea"
+            placeholder="Describe your skill"
             rows={3}
             required
           />
         </div>
-        <div className="mb-4">
-          <label className="block text-sm font-medium mb-2">Category</label>
+
+        {/* Category */}
+        <div>
+          <label className="form-label">Category</label>
           <select
             name="category"
             value={formData.category}
             onChange={handleChange}
-            className="w-full border px-3 py-2 rounded"
+            className="form-select"
             required
           >
             <option value="">Select Category</option>
-            {SKILL_CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+            {SKILL_CATEGORIES.map(cat => (
+              <option key={cat} value={cat}>
+                {cat}
+              </option>
+            ))}
           </select>
         </div>
-        <div className="mb-4">
-          <label className="block text-sm font-medium mb-2">Level</label>
+
+        {/* Level */}
+        <div>
+          <label className="form-label">Level</label>
           <select
             name="level"
             value={formData.level}
             onChange={handleChange}
-            className="w-full border px-3 py-2 rounded"
+            className="form-select"
             required
           >
-            {SKILL_LEVELS.map(level => <option key={level} value={level}>{level}</option>)}
+            {SKILL_LEVELS.map(level => (
+              <option key={level} value={level}>
+                {level}
+              </option>
+            ))}
           </select>
         </div>
-        <div className="mb-4">
-          <label className="block text-sm font-medium mb-2">Rate ($)</label>
+
+        {/* Rate */}
+        <div>
+          <label className="form-label">Rate ($)</label>
           <input
             type="number"
             name="rate"
             value={formData.rate}
             onChange={handleChange}
-            className="w-full border px-3 py-2 rounded"
+            className="form-input"
             min="0"
             step="0.01"
+            placeholder="0.00"
             required
           />
         </div>
-        <div className="mb-4">
-          <label className="block text-sm font-medium mb-2">Availability</label>
-          <div className="flex flex-wrap gap-2">
+
+        {/* Availability */}
+        <div>
+          <label className="form-label">Availability</label>
+          <div className="availability-group">
             {daysOfWeek.map(day => (
-              <label key={day} className="flex items-center">
+              <label key={day} className="availability-day">
                 <input
                   type="checkbox"
                   checked={formData.availability.includes(day)}
                   onChange={() => handleAvailabilityChange(day)}
-                  className="mr-1"
+                  className="accent-purple-500"
                 />
                 {day}
               </label>
             ))}
           </div>
         </div>
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 disabled:opacity-50"
-        >
-          {loading ? 'Registering...' : 'Register Skill'}
-        </button>
+
+        {/* Submit Button */}
+        <div className="form-submit">
+          <button
+            type="submit"
+            disabled={loading}
+            className="btn btn-large glowing disabled:opacity-50 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white px-8 py-3 rounded-full font-bold shadow-lg transform hover:scale-105 transition-all duration-300"
+          >
+            {loading ? 'Registering...' : 'Register Skill'}
+          </button>
+        </div>
       </form>
     </div>
   )

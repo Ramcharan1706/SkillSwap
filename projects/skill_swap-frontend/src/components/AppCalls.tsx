@@ -149,10 +149,11 @@ const AppCalls: React.FC<AppCallsProps> = ({ openModal, setModalState }) => {
       aria-labelledby="modal-title"
       ref={dialogRef}
       open={openModal}
+      style={{ background: 'linear-gradient(to bottom right, #581c87, #3730a3)' }}
     >
       <form
         method="dialog"
-        className="modal-box bg-white/95 backdrop-blur-sm border border-white/20 shadow-2xl max-w-2xl"
+        className="modal-box bg-transparent backdrop-blur-sm border border-white/20 shadow-2xl max-w-2xl"
         onSubmit={e => {
           e.preventDefault()
           if (!loading && isFormValid()) sendAppCall()
@@ -172,7 +173,7 @@ const AppCalls: React.FC<AppCallsProps> = ({ openModal, setModalState }) => {
           </label>
           <select
             id="action-select"
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 bg-white"
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 bg-transparent"
             value={action}
             onChange={(e) => setAction(e.target.value as ActionType)}
             disabled={loading}
@@ -261,7 +262,7 @@ const AppCalls: React.FC<AppCallsProps> = ({ openModal, setModalState }) => {
         <footer className="modal-action mt-8 flex justify-end gap-4">
           <button
             type="button"
-            className="btn btn-outline border-gray-300 text-gray-700 hover:bg-gray-50 px-6 py-2"
+            className="btn btn-outline border-gray-300 text-gray-700 hover:bg-transparent px-6 py-2"
             onClick={() => setModalState(false)}
             disabled={loading}
           >

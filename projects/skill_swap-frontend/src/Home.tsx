@@ -1,19 +1,15 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react'
-import { useWallet } from '@txnlab/use-wallet-react'
-import ConnectWallet from './components/ConnectWallet'
+import { useAuth } from '../context/AuthContext'
 import SkillList from './components/SkillList'
 import UserProfile from './components/UserProfile'
 import BookingModal from './components/BookingModal'
 import ReviewModal from './components/ReviewModal'
-import {
-  getAlgodConfigFromViteEnvironment,
-  getIndexerConfigFromViteEnvironment,
-} from './utils/network/getAlgoClientConfigs'
 import { AlgorandClient } from '@algorandfoundation/algokit-utils'
+import { SkillSwapClient } from './contracts/SkillSwap'
+import { getAlgodConfigFromViteEnvironment, getIndexerConfigFromViteEnvironment } from './utils/network/getAlgoClientConfigs'
 
 const Home: React.FC = () => {
-  const { activeAddress, transactionSigner } = useWallet()
-  const [openWalletModal, setOpenWalletModal] = useState(false)
+  const { role, userName } = useAuth()
   const [openBookingModal, setOpenBookingModal] = useState(false)
   const [openFeedbackModal, setOpenFeedbackModal] = useState(false)
   const [selectedSkillId, setSelectedSkillId] = useState<number | null>(null)
@@ -21,47 +17,33 @@ const Home: React.FC = () => {
   const [selectedSlot, setSelectedSlot] = useState<{ slot: string; link: string } | null>(null)
   const [feedbackSkillId, setFeedbackSkillId] = useState<number | null>(null)
   const [bookedSlots, setBookedSlots] = useState<{ skillId: number; slot: string }[]>([])
-  const [userRegistered, setUserRegistered] = useState(false)
-  const [userName, setUserName] = useState('')
   const [algorandClient, setAlgorandClient] = useState<AlgorandClient | null>(null)
-  const [isDisconnecting, setIsDisconnecting] = useState(false)
-  const [isLoadingClient, setIsLoadingClient] = useState(false)
+  const [appClient, setAppClient] = useState<SkillSwapClient | null>(null)
 
   // -------------------------------
-  // 🔹 Initialize Algorand Client
+  // 🔹 Initialize Algorand client and app client
   // -------------------------------
   useEffect(() => {
-    const initClient = async () => {
-      if (!activeAddress || !transactionSigner) {
-        setAlgorandClient(null)
-        setUserRegistered(false)
-        setUserName('')
-        return
-      }
-
-      setIsLoadingClient(true)
+    const initClients = async () => {
       try {
         const algodConfig = getAlgodConfigFromViteEnvironment()
         const indexerConfig = getIndexerConfigFromViteEnvironment()
-        const client = AlgorandClient.fromConfig({ algodConfig, indexerConfig })
-        client.setDefaultSigner(transactionSigner)
-        setAlgorandClient(client)
+        const algorand = AlgorandClient.fromConfig({ algodConfig, indexerConfig })
+        setAlgorandClient(algorand)
+
+        const appId = process.env.VITE_SKILL_SWAP_APP_ID || '123456789'
+        const client = new SkillSwapClient({ appId: Number(appId), algorand })
+        setAppClient(client)
       } catch (error) {
-        console.error('Error initializing Algorand client:', error)
-      } finally {
-        setIsLoadingClient(false)
+        console.error('Failed to initialize clients:', error)
       }
     }
-
-    initClient()
-  }, [activeAddress, transactionSigner])
+    initClients()
+  }, [])
 
   // -------------------------------
   // 🔹 UI Event Handlers
   // -------------------------------
-  const toggleWalletModal = useCallback(() => {
-    setOpenWalletModal((prev) => !prev)
-  }, [])
 
   const openBooking = useCallback((skillId: number, skillRate: number, selectedSlot: { slot: string; link: string }) => {
     setSelectedSkillId(skillId)
@@ -91,131 +73,75 @@ const Home: React.FC = () => {
     setFeedbackSkillId(null)
   }, [])
 
-  const handleRegister = useCallback((name: string) => {
-    setUserName(name)
-    setUserRegistered(true)
-  }, [])
-
-  // -------------------------------
-  // 🔹 Disconnect Wallet
-  // -------------------------------
-  const handleDisconnect = useCallback(async () => {
-    if (isDisconnecting) return
-    setIsDisconnecting(true)
-
-    try {
-      console.log('🔌 Disconnecting wallet...')
-      // Note: disconnect function may not be available in this version, handle gracefully
-    } catch (error) {
-      console.error('Error during wallet disconnect:', error)
-    } finally {
-      // Reset app state after disconnect
-      setUserName('')
-      setUserRegistered(false)
-      setAlgorandClient(null)
-      setSelectedSkillId(null)
-      setSelectedSkillRate(0)
-      setSelectedSlot(null)
-      setFeedbackSkillId(null)
-      setBookedSlots([])
-      setOpenBookingModal(false)
-      setOpenFeedbackModal(false)
-      setOpenWalletModal(true)
-      setIsDisconnecting(false)
-    }
-  }, [isDisconnecting])
+  // Registration is now handled in RegisterPage, so this callback is no longer needed
+  // Users are assumed to be registered when they reach Home
 
   // -------------------------------
   // 🔹 Derived Values (Memoized)
   // -------------------------------
-  const isConnected = useMemo(() => !!activeAddress, [activeAddress])
+  // Simplified - always connected since no wallet required
+  const isConnected = true
 
   // -------------------------------
   // 🔹 Render Logic
   // -------------------------------
   const renderHeader = () => (
-    <header className="relative z-10 bg-white/10 backdrop-blur-lg shadow-2xl py-8 px-6 flex justify-between items-center sticky top-0 border-b border-white/20">
-      <div className="text-center flex-1">
-        <h1 className="text-5xl font-bold bg-gradient-to-r from-yellow-300 via-pink-300 via-purple-300 to-cyan-300 bg-clip-text text-transparent animate-pulse drop-shadow-lg">
+    <header className="relative z-10 bg-gradient-to-br from-purple-900 via-indigo-900 to-black shadow-2xl py-6 px-8 flex justify-between items-center sticky top-0 border-b border-white/20">
+      <div className="text-center flex-1 px-4">
+        <h1 className="text-4xl md:text-5xl font-bold text-white drop-shadow-lg">
           🎨 SkillSwap
         </h1>
-        <p className="text-lg text-white/90 font-medium mt-2 drop-shadow-md">
+        <p className="text-base md:text-lg text-white/90 font-medium mt-2 drop-shadow-md">
           ✨ Peer-to-peer learning platform
         </p>
       </div>
 
-      {!isConnected ? (
-        <button
-          onClick={toggleWalletModal}
-          className="bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 text-white px-8 py-4 rounded-full hover:from-yellow-500 hover:via-orange-600 hover:to-red-600 transition-all duration-500 transform hover:scale-110 shadow-2xl font-bold text-lg animate-bounce"
-        >
-          🚀 Connect Wallet
-        </button>
-      ) : (
-        <div className="flex items-center gap-6">
-          <div className="text-right bg-white/20 backdrop-blur-md p-4 rounded-2xl border border-white/30 shadow-xl">
-            <p className="font-bold text-green-300 animate-pulse text-lg">🌟 Connected</p>
-            <p className="text-white font-mono text-sm mt-1">
-              {activeAddress?.slice(0, 6)}...{activeAddress?.slice(-4)}
-            </p>
-          </div>
-          <button
-            onClick={handleDisconnect}
-            disabled={isDisconnecting}
-            className={`px-6 py-3 rounded-full text-lg transition-all duration-500 transform hover:scale-110 font-bold shadow-2xl ${
-              isDisconnecting
-                ? 'bg-red-500 text-white cursor-not-allowed animate-pulse'
-                : 'bg-gradient-to-r from-red-500 via-pink-500 to-purple-500 text-white hover:from-red-600 hover:via-pink-600 hover:to-purple-600'
-            }`}
-          >
-            {isDisconnecting ? '🔄 Disconnecting...' : '👋 Disconnect'}
-          </button>
+      <div className="flex items-center gap-4 md:gap-6">
+        <div className="text-right bg-white/20 backdrop-blur-md p-3 md:p-4 rounded-2xl border border-white/30 shadow-xl">
+          <p className="font-bold text-green-300 text-base md:text-lg">🌟 Welcome</p>
+          <p className="text-white font-mono text-xs md:text-sm mt-1">
+            {userName || 'User'}
+          </p>
         </div>
-      )}
+      </div>
     </header>
   )
 
   const renderHero = () => (
-    <section className="text-center px-6 max-w-6xl mx-auto">
-      <h2 className="text-7xl font-extrabold bg-gradient-to-r from-yellow-300 via-pink-300 via-purple-300 to-cyan-300 bg-clip-text text-transparent mb-8 animate-bounce drop-shadow-2xl leading-tight">
+    <section className="bg-gradient-to-br from-purple-900 via-indigo-900 to-black text-center px-4 md:px-6 py-12 md:py-16 max-w-6xl mx-auto relative">
+      <h2 className="text-6xl md:text-8xl font-extrabold gradient-text mb-8 md:mb-10 drop-shadow-2xl leading-tight floating">
         🌈 SkillSwap Platform
       </h2>
-      <p className="text-white/95 text-2xl font-medium leading-relaxed drop-shadow-lg mb-8">
+      <p className="text-white/95 text-2xl md:text-3xl font-bold leading-relaxed drop-shadow-lg mb-8 md:mb-10 px-4">
         🎯 Share your skills, learn new ones. Connect with learners worldwide in a decentralized learning community! ✨
       </p>
-      <p className="text-white/80 text-lg mb-12">
+      <p className="text-white/80 text-lg md:text-xl mb-10 md:mb-14 px-4 font-medium">
         Join thousands of learners and teachers in the most vibrant skill-sharing platform on blockchain.
       </p>
       <button
-        onClick={toggleWalletModal}
-        className="bg-gradient-to-r from-cyan-400 via-blue-500 via-purple-500 to-pink-500 text-white px-12 py-6 rounded-full text-2xl hover:from-cyan-500 hover:via-blue-600 hover:to-pink-600 transition-all duration-700 transform hover:scale-125 shadow-2xl font-bold animate-pulse border-4 border-white/30"
+        className="bg-gradient-to-r from-cyan-400 via-blue-500 via-purple-500 to-pink-500 text-white px-10 py-5 md:px-14 md:py-7 rounded-full text-2xl md:text-3xl hover:from-cyan-500 hover:via-blue-600 hover:to-pink-600 transition-all duration-700 transform hover:scale-125 shadow-2xl font-bold border-4 border-white/30 glowing"
       >
         🚀 Start Your Learning Journey
       </button>
     </section>
   )
 
-  const renderLoading = () => (
-    <div className="text-center">
-      <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-purple-600 mb-4"></div>
-      <p className="text-xl text-white/90">Initializing SkillSwap...</p>
-    </div>
-  )
+  // Removed renderLoading since no wallet initialization needed
 
   const renderMainApp = () => (
-    <section className="px-6 w-full max-w-7xl mx-auto">
-      <div className="grid lg:grid-cols-3 gap-12 items-center">
-        <div className="lg:col-span-1 flex justify-center">
-          <div className="bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl p-8 border-2 border-white/40 transform hover:scale-105 transition-all duration-500 w-full max-w-md">
-            <UserProfile address={activeAddress!} registered={userRegistered} onRegister={handleRegister} />
+    <section className="bg-gradient-to-br from-purple-900 via-indigo-900 to-black px-4 md:px-6 py-8 md:py-12 w-full max-w-7xl mx-auto">
+      <div className="grid lg:grid-cols-3 gap-8 md:gap-12 items-start lg:items-center">
+        <div className="lg:col-span-1 flex justify-center order-2 lg:order-1">
+          <div className="bg-transparent backdrop-blur-xl rounded-3xl shadow-2xl p-6 md:p-8 border-2 border-white/40 transform hover:scale-105 transition-all duration-500 w-full max-w-md">
+            {appClient && <UserProfile appClient={appClient} />}
           </div>
         </div>
-        <div className="lg:col-span-2 flex justify-center">
-          <div className="bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl p-8 border-2 border-white/40 transform hover:scale-105 transition-all duration-500 w-full">
-            <h2 className="text-4xl font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-red-600 bg-clip-text text-transparent mb-8 flex items-center justify-center gap-3 drop-shadow-lg">
+        <div className="lg:col-span-2 flex justify-center order-1 lg:order-2">
+          <div className="bg-transparent backdrop-blur-xl rounded-3xl shadow-2xl p-6 md:p-8 border-2 border-white/40 transform hover:scale-105 transition-all duration-500 w-full">
+            <h2 className="text-4xl md:text-5xl font-bold gradient-text mb-8 md:mb-10 flex items-center justify-center gap-3 drop-shadow-lg floating">
               🎨 Available Skills
             </h2>
-            <SkillList onBookSkill={openBooking} onOpenReviewModal={openFeedback} algorandClient={algorandClient!} userAddress={activeAddress!} bookedSlots={bookedSlots} />
+            <SkillList onBookSkill={openBooking} onOpenReviewModal={openFeedback} algorandClient={algorandClient} userAddress={userName} bookedSlots={bookedSlots} />
           </div>
         </div>
       </div>
@@ -223,10 +149,10 @@ const Home: React.FC = () => {
   )
 
   const renderFooter = () => (
-    <footer className="relative z-10 bg-gradient-to-r from-purple-800 via-pink-800 to-red-800 border-t-2 border-white/30 py-8 text-center text-white">
-      <div className="max-w-5xl mx-auto px-6">
-        <p className="text-xl font-bold drop-shadow-lg">🎉 Welcome to SkillSwap - Where Learning Meets Blockchain ✨</p>
-        <p className="text-white/80 text-lg font-medium drop-shadow-md mt-2">
+    <footer className="relative z-10 bg-gradient-to-br from-purple-900 via-indigo-900 to-black border-t-2 border-white/30 py-6 md:py-8 text-center text-white">
+      <div className="max-w-5xl mx-auto px-4 md:px-6">
+        <p className="text-xl md:text-2xl font-bold drop-shadow-lg gradient-text">🎉 Welcome to SkillSwap - Where Learning Meets Blockchain ✨</p>
+        <p className="text-white/80 text-lg md:text-xl font-bold drop-shadow-md mt-3">
           Empowering peer-to-peer skill exchange worldwide 🌍
         </p>
       </div>
@@ -237,19 +163,17 @@ const Home: React.FC = () => {
   // 🔹 Final Render
   // -------------------------------
   return (
-    <main className="min-h-screen bg-gradient-to-br from-emerald-900 via-teal-900 via-cyan-900 to-blue-900 text-white font-sans relative overflow-hidden flex flex-col">
+    <main className="min-h-screen bg-gradient-to-br from-purple-900 via-indigo-900 to-black text-white font-sans relative overflow-hidden flex flex-col" style={{ background: 'linear-gradient(to bottom right, #581c87, #3730a3, #000000)' }}>
       {renderHeader()}
 
       <div className="flex-1 flex items-center justify-center relative z-10">
-        {!isConnected ? renderHero() : isLoadingClient ? renderLoading() : renderMainApp()}
+        {renderMainApp()}
       </div>
 
       {renderFooter()}
 
       {/* Modals */}
-      <ConnectWallet openModal={openWalletModal} closeModal={toggleWalletModal} />
-
-      {selectedSkillId !== null && openBookingModal && algorandClient && activeAddress && selectedSlot && (
+      {selectedSkillId !== null && openBookingModal && selectedSlot && algorandClient && (
         <BookingModal
           openModal={openBookingModal}
           setModalState={(value: boolean) => {
@@ -265,7 +189,7 @@ const Home: React.FC = () => {
           initialSkillRate={selectedSkillRate}
           selectedSlot={selectedSlot}
           algorand={algorandClient}
-          activeAddress={activeAddress}
+          activeAddress={userName}
           onBookingSuccess={handleBookingSuccess}
         />
       )}

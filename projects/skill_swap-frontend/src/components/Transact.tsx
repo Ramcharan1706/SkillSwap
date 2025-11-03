@@ -14,7 +14,7 @@ const Transact = ({ openModal, setModalState }: TransactInterface) => {
   const [receiverAddress, setReceiverAddress] = useState('')
 
   const { enqueueSnackbar } = useSnackbar()
-  const { transactionSigner, activeAddress } = useWallet()
+  const { transactionSigner, activeAddress, activeAccount } = useWallet()
   const algodConfig = getAlgodConfigFromViteEnvironment()
   const algorand = AlgorandClient.fromConfig({ algodConfig })
 
@@ -39,8 +39,8 @@ const Transact = ({ openModal, setModalState }: TransactInterface) => {
     e.preventDefault()
     if (loading) return
 
-    if (!transactionSigner || !activeAddress) {
-      enqueueSnackbar('Please connect your wallet first.', { variant: 'warning' })
+    if (!transactionSigner || !activeAddress || !activeAccount) {
+      enqueueSnackbar('Please connect your wallet and ensure it is active.', { variant: 'warning' })
       return
     }
 
@@ -72,7 +72,7 @@ const Transact = ({ openModal, setModalState }: TransactInterface) => {
     <dialog
       id="transact_modal"
       className={`modal ${openModal ? 'modal-open' : ''} bg-black/50 backdrop-blur-sm`}
-      style={{ display: openModal ? 'block' : 'none' }}
+      style={{ display: openModal ? 'block' : 'none', background: 'linear-gradient(to bottom right, #581c87, #3730a3)' }}
       onClick={(e) => {
         // close modal if click outside modal-box
         if ((e.target as Element).id === 'transact_modal') {
@@ -82,7 +82,7 @@ const Transact = ({ openModal, setModalState }: TransactInterface) => {
     >
       <form
         method="dialog"
-        className="modal-box max-w-md bg-white/95 backdrop-blur-sm border border-white/20 shadow-lg"
+        className="modal-box max-w-md bg-transparent backdrop-blur-sm border border-white/20 shadow-lg"
         onSubmit={(e) => e.preventDefault()}
       >
         <h3 className="font-bold text-lg mb-4 text-gray-800">Send 1 Algo Payment</h3>

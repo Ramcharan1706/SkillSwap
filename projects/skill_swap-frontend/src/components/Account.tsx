@@ -11,7 +11,7 @@ const Account = () => {
     return algoConfig.network === '' ? 'localnet' : algoConfig.network.toLocaleLowerCase()
   }, [algoConfig.network])
   return (
-    <div>
+    <div style={{ background: 'linear-gradient(to bottom right, #581c87, #3730a3)' }}>
       <a className="text-xl" target="_blank" href={`https://lora.algokit.io/${networkName}/account/${activeAddress}/`}>
         Address: {ellipseAddress(activeAddress)}
       </a>

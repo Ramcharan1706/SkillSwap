@@ -1,6 +1,10 @@
 import { SupportedWallet, WalletId, WalletManager, WalletProvider } from '@txnlab/use-wallet-react'
 import { SnackbarProvider } from 'notistack'
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
+import { AuthProvider } from '../context/AuthContext'
 import Home from './Home'
+import LoginPage from '../pages/LoginPage'
+import RegisterPage from '../pages/RegisterPage'
 import { getAlgodConfigFromViteEnvironment, getKmdConfigFromViteEnvironment } from './utils/network/getAlgoClientConfigs'
 
 let supportedWallets: SupportedWallet[]
@@ -47,7 +51,17 @@ export default function App() {
   return (
     <SnackbarProvider maxSnack={3}>
       <WalletProvider manager={walletManager}>
-        <Home />
+        <AuthProvider>
+          <Router>
+            <div style={{ background: 'linear-gradient(to bottom right, #581c87, #3730a3, #000000)' }}>
+              <Routes>
+                <Route path="/" element={<LoginPage />} />
+                <Route path="/register" element={<RegisterPage />} />
+                <Route path="/home" element={<Home />} />
+              </Routes>
+            </div>
+          </Router>
+        </AuthProvider>
       </WalletProvider>
     </SnackbarProvider>
   )
