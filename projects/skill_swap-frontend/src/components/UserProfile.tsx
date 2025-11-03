@@ -325,3 +325,4 @@ const UserProfile: React.FC<UserProfileProps> = ({ appClient }) => {
 }
 
 export default UserProfile
+
