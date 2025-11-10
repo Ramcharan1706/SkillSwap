@@ -1,5 +1,6 @@
 {
-  "buildCommand": "pip install algokit && npm run build",
+  "rootDirectory": "projects/skill_swap-frontend",
+  "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "framework": "vite",
   "rewrites": [
