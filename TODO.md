@@ -1,5 +1,0 @@
-- [x] Update package.json build script to "vite build"
-- [x] Update vercel.json to include rootDirectory and remove pip install algokit
-- [x] Verify build locally in projects/skill_swap-frontend
-- [ ] Commit and push changes for Vercel redeploy
-- [ ] Ensure Vercel Dashboard settings: Root Directory: projects/skill_swap-frontend, Build Command: npm run build, Output Directory: dist, Framework Preset: Vite
