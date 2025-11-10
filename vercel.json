@@ -1,5 +1,4 @@
 {
-  "rootDirectory": "projects/skill_swap-frontend",
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "framework": "vite",
